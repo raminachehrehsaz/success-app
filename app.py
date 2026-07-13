@@ -1,26 +1,4 @@
-[23:33, 7/13/2026] Ramina: import streamlit as st
-import pandas as pd
-
-st.set_page_config(page_title="Enterprise Manager & Employee Portal", layout="centered")
-
-if "users_db" not in st.session_state:
-    st.session_state.users_db = {"admin": ("admin", "Manager")}
-if "sales_data" not in st.session_state:
-    st.session_state.sales_data = []
-if "current_page" not in st.session_state:
-    st.session_state.current_page = "RoleSelection"
-if "current_employee" not in st.session_state:
-    st.session_state.current_employee = ""
-if "temp_data" not in st.session_state:
-    st.session_state.temp_data = {}
-
-def navigate_to(page_name):
-    st.session_state.current_page = page_name
-    st.rerun()
-
-# ----------------- Role Selection -----------------
-if st.session_state.current_page == "RoleSelecti…
-[23:37, 7/13/2026] Ramina: import streamlit as st
+import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="Enterprise Manager & Employee Portal", layout="centered")
@@ -59,15 +37,15 @@ elif st.session_state.current_page == "ManagerLogin":
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Return", use_container_width=True):
-            navigate_to("RoleSelection")
-    with col2:
         if st.button("Enter", use_container_width=True):
             if user in st.session_state.users_db and st.session_state.users_db[user] == (passw, "Manager"):
                 st.success("Login Successful!")
                 navigate_to("ManagerDashboard")
             else:
                 st.error("Invalid Manager credentials.")
+    with col2:
+        if st.button("Return", use_container_width=True):
+            navigate_to("RoleSelection")
 
 # ----------------- Employee Login -----------------
 elif st.session_state.current_page == "EmployeeLogin":
@@ -77,9 +55,6 @@ elif st.session_state.current_page == "EmployeeLogin":
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Return", use_container_width=True):
-            navigate_to("RoleSelection")
-    with col2:
         if st.button("Enter", use_container_width=True):
             if not user or not passw:
                 st.error("Username and Password cannot be empty.")
@@ -96,6 +71,9 @@ elif st.session_state.current_page == "EmployeeLogin":
                 st.session_state.current_employee = user
                 st.success("Account created and registered successfully!")
                 navigate_to("EmployeeDashboard")
+    with col2:
+        if st.button("Return", use_container_width=True):
+            navigate_to("RoleSelection")
 
 # ----------------- Manager Dashboard -----------------
 elif st.session_state.current_page == "ManagerDashboard":
