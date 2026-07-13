@@ -1,5 +1,5 @@
 import streamlit as st
-import matplotlib.pyplot as plt
+import pandas as pd
 
 st.set_page_config(page_title="Enterprise Manager & Employee Portal", layout="centered")
 
@@ -99,7 +99,6 @@ elif st.session_state.current_page == "ManagerDashboard":
         with col1:
             st.subheader("Sales List")
             if emp_records:
-                import pandas as pd
                 df = pd.DataFrame(emp_records)[["ShamsiDate", "Product", "PR", "Status"]]
                 st.dataframe(df, use_container_width=True, hide_index=True)
             else:
@@ -129,16 +128,14 @@ elif st.session_state.current_page == "ManagerDashboard":
                     sold_count = cumulative_statuses.count("Sold")
                     lead_count = cumulative_statuses.count("Lead")
                     total = sold_count + lead_count
-                    cr_values.append((sold_count / total * 100) if total > 0 else 0)
+                    cr_values.append((sold_count / total * 100) if total > 0 else 0.0)
                 
                 if sorted_days:
-                    fig, ax = plt.subplots(figsize=(4, 3))
-                    ax.plot(sorted_days, cr_values, "-o", color="#D95319", linewidth=2)
-                    ax.set_xlabel("Day of Shamsi Month")
-                    ax.set_ylabel("Conversion Rate (CR %)")
-                    ax.set_ylim(-5, 105)
-                    ax.grid(True)
-                    st.pyplot(fig)
+                    chart_df = pd.DataFrame({
+                        "Day": sorted_days,
+                        "CR %": cr_values
+                    }).set_index("Day")
+                    st.line_chart(chart_df)
             else:
                 st.write("No trend data available.")
 
