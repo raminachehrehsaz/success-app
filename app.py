@@ -158,7 +158,7 @@ elif st.session_state.current_page == "ManagerDashboard":
                 
                 if sorted_days:
                     chart_df = pd.DataFrame({
-                        "Day": sorted_days,
+                        "Day": [str(d) for d in sorted_days],
                         "CR %": cr_values
                     }).set_index("Day")
                     st.line_chart(chart_df)
