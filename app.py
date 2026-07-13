@@ -1,15 +1,52 @@
 import streamlit as st
 import pandas as pd
+import json
+import os
 
 st.set_page_config(page_title="Enterprise Manager & Employee Portal", layout="centered")
 
-if "users_db" not in st.session_state:
-    st.session_state.users_db = {
-        "admin": ("admin", "Manager"),
-        "RaminaChehrehsaz": ("123456", "Manager")
+# فایل‌های ذخیره‌سازی داده‌ها روی سرور
+USERS_FILE = "users_db.json"
+SALES_FILE = "sales_data.json"
+
+# تابع کمکی برای بارگذاری کاربران از فایل
+def load_users():
+    if os.path.exists(USERS_FILE):
+        try:
+            with open(USERS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            pass
+    return {
+        "admin": ["admin", "Manager"],
+        "RaminaChehrehsaz": ["123456", "Manager"]
     }
+
+# تابع کمکی برای ذخیره کاربران در فایل
+def save_users(users):
+    with open(USERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(users, f, ensure_ascii=False, indent=4)
+
+# تابع کمکی برای بارگذاری داده‌های فروش از فایل
+def load_sales():
+    if os.path.exists(SALES_FILE):
+        try:
+            with open(SALES_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            pass
+    return []
+
+# تابع کمکی برای ذخیره داده‌های فروش در فایل
+def save_sales(sales):
+    with open(SALES_FILE, "w", encoding="utf-8") as f:
+        json.dump(sales, f, ensure_ascii=False, indent=4)
+
+# مقداردهی اولیه Session State با استفاده از اطلاعات هارد دیسک
+if "users_db" not in st.session_state:
+    st.session_state.users_db = load_users()
 if "sales_data" not in st.session_state:
-    st.session_state.sales_data = []
+    st.session_state.sales_data = load_sales()
 if "current_page" not in st.session_state:
     st.session_state.current_page = "RoleSelection"
 if "current_employee" not in st.session_state:
@@ -44,7 +81,9 @@ elif st.session_state.current_page == "ManagerLogin":
             navigate_to("RoleSelection")
     with col2:
         if st.button("Enter", use_container_width=True):
-            if user in st.session_state.users_db and st.session_state.users_db[user] == (passw, "Manager"):
+            # تبدیل لیست به تاپل جهت همخوانی با کدهای قبلی
+            user_data = st.session_state.users_db.get(user)
+            if user_data and tuple(user_data) == (passw, "Manager"):
                 st.success("Login Successful!")
                 navigate_to("ManagerDashboard")
             else:
@@ -73,7 +112,9 @@ elif st.session_state.current_page == "EmployeeLogin":
                 else:
                     st.error("Wrong password or invalid account.")
             else:
-                st.session_state.users_db[user] = (passw, "Employee")
+                # ثبت کاربر جدید و ذخیره دائم آن در فایل JSON
+                st.session_state.users_db[user] = [passw, "Employee"]
+                save_users(st.session_state.users_db)
                 st.session_state.current_employee = user
                 st.success("Account created and registered successfully!")
                 navigate_to("EmployeeDashboard")
@@ -87,7 +128,7 @@ elif st.session_state.current_page == "ManagerDashboard":
         if st.button("Logout", use_container_width=True):
             navigate_to("RoleSelection")
             
-    employees = [u for u, (p, r) in st.session_state.users_db.items() if r == "Employee"]
+    employees = [u for u, data in st.session_state.users_db.items() if data[1] == "Employee"]
     
     if not employees:
         st.info("No employees registered yet.")
@@ -255,7 +296,10 @@ elif st.session_state.current_page == "ConsumerData":
                 "CustomerNotes": cust_notes
             }
             
+            # ذخیره تراکنش جدید و ثبت دائمی آن در هارد سرور
             st.session_state.sales_data.append(new_row)
+            save_sales(st.session_state.sales_data)
+            
             st.toast("Data registered successfully!")
             st.session_state.temp_data = {}
             navigate_to("EmployeeDashboard")
