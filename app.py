@@ -4,7 +4,10 @@ import pandas as pd
 st.set_page_config(page_title="Enterprise Manager & Employee Portal", layout="centered")
 
 if "users_db" not in st.session_state:
-    st.session_state.users_db = {"admin": ("admin", "Manager")}
+    st.session_state.users_db = {
+        "admin": ("admin", "Manager"),
+        "RaminaChehrehsaz": ("123456", "Manager")
+    }
 if "sales_data" not in st.session_state:
     st.session_state.sales_data = []
 if "current_page" not in st.session_state:
@@ -37,15 +40,15 @@ elif st.session_state.current_page == "ManagerLogin":
     
     col1, col2 = st.columns(2)
     with col1:
+        if st.button("Return", use_container_width=True):
+            navigate_to("RoleSelection")
+    with col2:
         if st.button("Enter", use_container_width=True):
             if user in st.session_state.users_db and st.session_state.users_db[user] == (passw, "Manager"):
                 st.success("Login Successful!")
                 navigate_to("ManagerDashboard")
             else:
                 st.error("Invalid Manager credentials.")
-    with col2:
-        if st.button("Return", use_container_width=True):
-            navigate_to("RoleSelection")
 
 # ----------------- Employee Login -----------------
 elif st.session_state.current_page == "EmployeeLogin":
@@ -55,6 +58,9 @@ elif st.session_state.current_page == "EmployeeLogin":
     
     col1, col2 = st.columns(2)
     with col1:
+        if st.button("Return", use_container_width=True):
+            navigate_to("RoleSelection")
+    with col2:
         if st.button("Enter", use_container_width=True):
             if not user or not passw:
                 st.error("Username and Password cannot be empty.")
@@ -71,9 +77,6 @@ elif st.session_state.current_page == "EmployeeLogin":
                 st.session_state.current_employee = user
                 st.success("Account created and registered successfully!")
                 navigate_to("EmployeeDashboard")
-    with col2:
-        if st.button("Return", use_container_width=True):
-            navigate_to("RoleSelection")
 
 # ----------------- Manager Dashboard -----------------
 elif st.session_state.current_page == "ManagerDashboard":
@@ -90,17 +93,40 @@ elif st.session_state.current_page == "ManagerDashboard":
         st.info("No employees registered yet.")
     else:
         with col_header:
-            selected_emp = st.selectbox("Select Employee", options=employees)
+            selected_emp = st.selectbox("Select Employee", options=["All Employees"] + employees)
             
-        emp_records = [r for r in st.session_state.sales_data if r["Employee"] == selected_emp]
+        if selected_emp == "All Employees":
+            emp_records = st.session_state.sales_data
+        else:
+            emp_records = [r for r in st.session_state.sales_data if r["Employee"] == selected_emp]
         
+        st.subheader("Daily Performance Summary")
+        if emp_records:
+            df_all = pd.DataFrame(emp_records)
+            summary_data = []
+            for date_val, group in df_all.groupby("ShamsiDate"):
+                total_presented = len(group)
+                total_sold = len(group[group["Status"] == "Sold"])
+                summary_data.append({
+                    "Date": date_val,
+                    "Total Presented (پرزنت شده)": total_presented,
+                    "Total Sold (خریده شده)": total_sold
+                })
+            summary_df = pd.DataFrame(summary_data)
+            st.dataframe(summary_df, use_container_width=True, hide_index=True)
+        else:
+            st.info("No data available for daily summary.")
+            
+        st.write("---")
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("Sales List")
+            st.subheader("Detailed Sales List")
             if emp_records:
-                df = pd.DataFrame(emp_records)[["ShamsiDate", "Product", "PR", "Status"]]
-                st.dataframe(df, use_container_width=True, hide_index=True)
+                df_details = pd.DataFrame(emp_records)
+                cols_to_show = ["ShamsiDate", "Employee", "Product", "PR", "Status", "Age", "Gender", "MaritalStatus", "Occupation"]
+                existing_cols = [c for c in cols_to_show if c in df_details.columns]
+                st.dataframe(df_details[existing_cols], use_container_width=True, hide_index=True)
             else:
                 st.write("No sales records found.")
                 
@@ -157,7 +183,6 @@ elif st.session_state.current_page == "EmployeeDashboard":
     day = col_d.selectbox("Day", [str(i) for i in range(1, 32)], index=0)
     
     product = st.selectbox("Product", ["Simazar", "Andokhte dar", "Omid", "Finora/ Zarnova"])
-    
     is_sale_successful = st.toggle("Submit Successful Sale", value=False)
     
     invest_val = 0.0
