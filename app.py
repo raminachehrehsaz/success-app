@@ -102,5 +102,5 @@ class PatientsDisplay:
             st.success(f"Log for {employee_name} saved successfully!")
             st.rerun()
 
-if '__name__' == "__main__":
+if __name__ == "__main__":
     PatientsDisplay()
