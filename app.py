@@ -187,10 +187,23 @@ elif st.session_state.current_page == "ConsumerData":
     
     cust_name = st.text_input("Customer Name")
     cust_phone = st.text_input("Phone Number")
-    cust_notes = st.text_area("Notes")
     
     col1, col2 = st.columns(2)
     with col1:
+        age = st.number_input("Age", min_value=0, max_value=120, value=0, step=1)
+        gender = st.radio("Gender", ["Male", "Female"], horizontal=True)
+        marital_status = st.radio("Marital Status", ["Single", "Married"], horizontal=True)
+        
+    with col2:
+        num_children = st.number_input("Num of children", min_value=0, max_value=20, value=0, step=1)
+        smoker = st.radio("Smoker", ["Yes", "No"], horizontal=True)
+        education = st.selectbox("Education", ["Diploma", "Bachelor's degree", "Master's degree", "PhD"])
+        
+    occupation = st.text_input("Occupation")
+    cust_notes = st.text_area("Notes")
+    
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
         if st.button("Submit", use_container_width=True):
             if not cust_name or not cust_phone:
                 st.error("Customer Name and Phone are required.")
@@ -215,6 +228,13 @@ elif st.session_state.current_page == "ConsumerData":
                     "Status": temp["Status"],
                     "CustomerName": cust_name,
                     "CustomerPhone": cust_phone,
+                    "Age": age,
+                    "Gender": gender,
+                    "MaritalStatus": marital_status,
+                    "NumChildren": num_children,
+                    "Smoker": smoker,
+                    "Education": education,
+                    "Occupation": occupation,
                     "CustomerNotes": cust_notes
                 }
                 
@@ -223,7 +243,7 @@ elif st.session_state.current_page == "ConsumerData":
                 st.session_state.temp_data = {}
                 navigate_to("EmployeeDashboard")
                 
-    with col2:
+    with col_btn2:
         if st.button("Cancel", use_container_width=True):
             st.session_state.temp_data = {}
             navigate_to("EmployeeDashboard")
