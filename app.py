@@ -1,4 +1,26 @@
-import streamlit as st
+[23:33, 7/13/2026] Ramina: import streamlit as st
+import pandas as pd
+
+st.set_page_config(page_title="Enterprise Manager & Employee Portal", layout="centered")
+
+if "users_db" not in st.session_state:
+    st.session_state.users_db = {"admin": ("admin", "Manager")}
+if "sales_data" not in st.session_state:
+    st.session_state.sales_data = []
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "RoleSelection"
+if "current_employee" not in st.session_state:
+    st.session_state.current_employee = ""
+if "temp_data" not in st.session_state:
+    st.session_state.temp_data = {}
+
+def navigate_to(page_name):
+    st.session_state.current_page = page_name
+    st.rerun()
+
+# ----------------- Role Selection -----------------
+if st.session_state.current_page == "RoleSelecti…
+[23:37, 7/13/2026] Ramina: import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="Enterprise Manager & Employee Portal", layout="centered")
@@ -37,15 +59,15 @@ elif st.session_state.current_page == "ManagerLogin":
     
     col1, col2 = st.columns(2)
     with col1:
+        if st.button("Return", use_container_width=True):
+            navigate_to("RoleSelection")
+    with col2:
         if st.button("Enter", use_container_width=True):
             if user in st.session_state.users_db and st.session_state.users_db[user] == (passw, "Manager"):
                 st.success("Login Successful!")
                 navigate_to("ManagerDashboard")
             else:
                 st.error("Invalid Manager credentials.")
-    with col2:
-        if st.button("Return", use_container_width=True):
-            navigate_to("RoleSelection")
 
 # ----------------- Employee Login -----------------
 elif st.session_state.current_page == "EmployeeLogin":
@@ -55,6 +77,9 @@ elif st.session_state.current_page == "EmployeeLogin":
     
     col1, col2 = st.columns(2)
     with col1:
+        if st.button("Return", use_container_width=True):
+            navigate_to("RoleSelection")
+    with col2:
         if st.button("Enter", use_container_width=True):
             if not user or not passw:
                 st.error("Username and Password cannot be empty.")
@@ -71,9 +96,6 @@ elif st.session_state.current_page == "EmployeeLogin":
                 st.session_state.current_employee = user
                 st.success("Account created and registered successfully!")
                 navigate_to("EmployeeDashboard")
-    with col2:
-        if st.button("Return", use_container_width=True):
-            navigate_to("RoleSelection")
 
 # ----------------- Manager Dashboard -----------------
 elif st.session_state.current_page == "ManagerDashboard":
@@ -185,9 +207,6 @@ elif st.session_state.current_page == "EmployeeDashboard":
 elif st.session_state.current_page == "ConsumerData":
     st.title("Enter Customer Specifications")
     
-    cust_name = st.text_input("Customer Name")
-    cust_phone = st.text_input("Phone Number")
-    
     col1, col2 = st.columns(2)
     with col1:
         age = st.number_input("Age", min_value=0, max_value=120, value=0, step=1)
@@ -205,43 +224,38 @@ elif st.session_state.current_page == "ConsumerData":
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
         if st.button("Submit", use_container_width=True):
-            if not cust_name or not cust_phone:
-                st.error("Customer Name and Phone are required.")
+            temp = st.session_state.temp_data
+            invest = temp["Investment"]
+            prod = temp["Product"]
+            
+            if prod in ["Simazar", "Andokhte dar", "Omid"]:
+                pr = invest
+            elif prod in ["Finora/ Zarnova", "Finora", "Zarnova"]:
+                pr = 0.40 * invest
             else:
-                temp = st.session_state.temp_data
-                invest = temp["Investment"]
-                prod = temp["Product"]
-                
-                if prod in ["Simazar", "Andokhte dar", "Omid"]:
-                    pr = invest
-                elif prod in ["Finora/ Zarnova", "Finora", "Zarnova"]:
-                    pr = 0.40 * invest
-                else:
-                    pr = 0
-                
-                new_row = {
-                    "ShamsiDate": temp["ShamsiDate"],
-                    "Employee": temp["Employee"],
-                    "Product": prod,
-                    "Investment": invest,
-                    "PR": pr,
-                    "Status": temp["Status"],
-                    "CustomerName": cust_name,
-                    "CustomerPhone": cust_phone,
-                    "Age": age,
-                    "Gender": gender,
-                    "MaritalStatus": marital_status,
-                    "NumChildren": num_children,
-                    "Smoker": smoker,
-                    "Education": education,
-                    "Occupation": occupation,
-                    "CustomerNotes": cust_notes
-                }
-                
-                st.session_state.sales_data.append(new_row)
-                st.toast("Data and Customer details registered successfully!")
-                st.session_state.temp_data = {}
-                navigate_to("EmployeeDashboard")
+                pr = 0
+            
+            new_row = {
+                "ShamsiDate": temp["ShamsiDate"],
+                "Employee": temp["Employee"],
+                "Product": prod,
+                "Investment": invest,
+                "PR": pr,
+                "Status": temp["Status"],
+                "Age": age,
+                "Gender": gender,
+                "MaritalStatus": marital_status,
+                "NumChildren": num_children,
+                "Smoker": smoker,
+                "Education": education,
+                "Occupation": occupation,
+                "CustomerNotes": cust_notes
+            }
+            
+            st.session_state.sales_data.append(new_row)
+            st.toast("Data registered successfully!")
+            st.session_state.temp_data = {}
+            navigate_to("EmployeeDashboard")
                 
     with col_btn2:
         if st.button("Cancel", use_container_width=True):
