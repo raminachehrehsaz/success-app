@@ -133,7 +133,7 @@ classdef PatientsDisplay < matlab.apps.AppBase
             % Load the data.
             load('patients.mat','LastName','Gender','Smoker','Age','Height','Weight','Diastolic','Systolic','Location');
             
-            % Store the data in a table and display it in one of the App's tabs.
+            % Store the data in a table and display it in one of the App\'s tabs.
             app.Data = table(LastName,app.Gender,Smoker,Age,Height,Weight,Diastolic,Systolic,Location);
             app.UITable.Data = app.Data;
             app.BinWidth = app.BinWidthSlider.Value;
