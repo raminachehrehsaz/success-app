@@ -8,13 +8,11 @@ st.set_page_config(page_title="Enterprise Manager & Employee Portal", layout="ce
 # --- Elegant, Dark Blue Gold/Neon Gradient Theme with Fixed Input Colors ---
 st.markdown("""
     <style>
-        /* Base background with a subtle, rich gradient fading from deep dark blue to slate */
         .stApp {
             background: linear-gradient(180deg, #070b12 0%, #101726 100%);
             color: #e2e8f0;
         }
         
-        /* Headers and labels styling with a smooth neon golden glow */
         h1, h2, h3, h4, h5, h6, label, p {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
@@ -25,7 +23,6 @@ st.markdown("""
             font-weight: 600 !important;
         }
         
-        /* Form inputs styled to seamlessly blend with the dark background */
         div[data-baseweb="input"] {
             background-color: #0c1220 !important;
             border: 1px solid rgba(241, 196, 15, 0.4) !important;
@@ -38,14 +35,12 @@ st.markdown("""
             box-shadow: 0 0 10px rgba(0, 229, 255, 0.35) !important;
         }
         
-        /* Forces input text and background to stay dark and readable */
         input {
             background-color: #0c1220 !important;
             color: #ffffff !important;
             -webkit-text-fill-color: #ffffff !important;
         }
 
-        /* Prevent browser autofill from turning the background white */
         input:-webkit-autofill,
         input:-webkit-autofill:hover, 
         input:-webkit-autofill:focus, 
@@ -54,7 +49,6 @@ st.markdown("""
             -webkit-text-fill-color: #ffffff !important;
         }
         
-        /* Selectbox specific dropdown styling fixes */
         div[data-baseweb="select"] {
             background-color: #0c1220 !important;
         }
@@ -63,7 +57,6 @@ st.markdown("""
             color: #ffffff !important;
         }
         
-        /* Smooth, fading gradient buttons */
         .stButton>button {
             background: linear-gradient(135deg, #e6b800 0%, #c19600 100%) !important;
             color: #070b12 !important;
@@ -180,7 +173,7 @@ elif st.session_state.current_page == "ManagerLoginPanel":
                 st.error("Please enter both Username and Password.")
             else:
                 user_data = st.session_state.users_db.get(user)
-                if user_data and tuple(user_data) == (passw, "Manager"):
+                if user_data and tuple(user_data[:2]) == (passw, "Manager"):
                     st.success("Login Successful!")
                     navigate_to("ManagerDashboard")
                 else:
@@ -203,7 +196,9 @@ elif st.session_state.current_page == "EmployeeLoginPanel":
             if not user or not passw:
                 st.error("Please enter both Username and Password.")
             elif user in st.session_state.users_db:
-                saved_p, role = st.session_state.users_db[user]
+                user_info = st.session_state.users_db[user]
+                saved_p = user_info[0]
+                role = user_info[1]
                 if saved_p == passw and role == "Employee":
                     st.session_state.current_employee = user
                     st.success("Login Successful!")
@@ -219,6 +214,21 @@ elif st.session_state.current_page == "SignupPanel":
     
     user = st.text_input("Choose Username")
     passw = st.text_input("Choose Password", type="password")
+    first_name = st.text_input("First Name")
+    last_name = st.text_input("Last Name")
+    email = st.text_input("Email Address")
+    phone = st.text_input("Phone Number")
+    
+    team_options = [
+        "انجمن نخبگان ایده پرداز",
+        "کانون توسعه سرمایه",
+        "کافه موفقیت",
+        "ایده پردازان نوین",
+        "فارمارک",
+        "مستقل IT",
+        "نسل آینده ساز گیشا"
+    ]
+    team_name = st.selectbox("Select Team", options=team_options)
     
     st.write("---")
     col1, col2 = st.columns(2)
@@ -227,12 +237,16 @@ elif st.session_state.current_page == "SignupPanel":
             navigate_to("LandingPage")
     with col2:
         if st.button("Create Account", use_container_width=True):
-            if not user or not passw:
-                st.error("Please fill out both fields.")
+            if not user or not passw or not first_name or not last_name or not email or not phone:
+                st.error("Please fill out all fields.")
             elif user in st.session_state.users_db:
                 st.error("Username is already taken.")
             else:
-                st.session_state.users_db[user] = [passw, "Employee"]
+                st.session_state.users_db[user] = [
+                    passw, 
+                    "Employee", 
+                    {"first_name": first_name, "last_name": last_name, "email": email, "phone": phone, "team": team_name}
+                ]
                 save_users(st.session_state.users_db)
                 st.session_state.current_employee = user
                 st.success("Account created successfully!")
@@ -327,7 +341,7 @@ elif st.session_state.current_page == "ManagerDashboard":
 
 # ----------------- Employee Dashboard -----------------
 elif st.session_state.current_page == "EmployeeDashboard":
-    st.title(f"Welcome, {st.session_state.current_employee}")
+    st.title(f"Welcome dear {st.session_state.current_employee}")
     
     col_logout = st.columns([3, 1])[1]
     if col_logout.button("Logout", use_container_width=True):
