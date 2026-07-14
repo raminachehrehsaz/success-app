@@ -49,7 +49,6 @@ st.markdown("""
         input { background-color: #0c1220 !important; color: #ffffff !important; }
         .stButton>button { background: linear-gradient(135deg, #e6b800 0%, #c19600 100%) !important; color: #070b12 !important; font-weight: 600 !important; border-radius: 8px !important; }
         .stButton>button:hover { background: linear-gradient(135deg, #00d9f5 0%, #0077b3 100%) !important; color: #ffffff !important; }
-        /* Right sidebar alignment for employee navigation */
         [data-testid="stSidebar"] { background-color: #090e18 !important; border-left: 1px solid rgba(241, 196, 15, 0.2); }
     </style>
 """, unsafe_allow_html=True)
@@ -78,6 +77,11 @@ if "sales_data" not in st.session_state: st.session_state.sales_data = load_sale
 if "current_page" not in st.session_state: st.session_state.current_page = "LandingPage"
 if "current_user" not in st.session_state: st.session_state.current_user = ""
 if "temp_data" not in st.session_state: st.session_state.temp_data = {}
+
+# Keep track of manager step-by-step navigation
+if "manager_step" not in st.session_state: st.session_state.manager_step = "SelectTeam"
+if "selected_team" not in st.session_state: st.session_state.selected_team = ""
+if "selected_member" not in st.session_state: st.session_state.selected_member = ""
 
 def navigate_to(page_name):
     st.session_state.current_page = page_name
@@ -124,6 +128,8 @@ elif st.session_state.current_page in ["ManagerLoginPanel", "EmployeeLoginPanel"
         user_data = st.session_state.users_db.get(u)
         if user_data and user_data[0] == p and user_data[1] == role_target:
             st.session_state.current_user = u
+            if role_target == "Manager":
+                st.session_state.manager_step = "SelectTeam"
             navigate_to(f"{role_target}Dashboard")
         else:
             st.error("Invalid Credentials.")
@@ -133,41 +139,135 @@ elif st.session_state.current_page in ["ManagerLoginPanel", "EmployeeLoginPanel"
 elif st.session_state.current_page == "ManagerDashboard":
     st.title(f"Manager Dashboard - Welcome {st.session_state.current_user}")
     
-    # Manager Profile & Password Settings
-    with st.expander("Security & Account Settings"):
-        new_u = st.text_input("Change Username", value=st.session_state.current_user)
-        new_p = st.text_input("New Password", type="password")
-        if st.button("Update Manager Account"):
-            if new_u and new_p:
-                old_data = st.session_state.users_db.pop(st.session_state.current_user)
-                st.session_state.users_db[new_u] = [new_p, "Manager", old_data[2]]
-                save_users(st.session_state.users_db)
-                st.session_state.current_user = new_u
-                st.success("Account updated successfully!")
-
-    if st.button("Logout"): navigate_to("LandingPage")
-    
-    df = pd.DataFrame(st.session_state.sales_data) if st.session_state.sales_data else pd.DataFrame()
-    
-    st.write("---")
-    st.subheader("Monthly Team & Employee Portfolio Performance")
-    if not df.empty:
-        df['Month'] = df['ShamsiDate'].apply(lambda x: x.split('/')[1] if len(x.split('/'))>1 else '00')
-        df['Year'] = df['ShamsiDate'].apply(lambda x: x.split('/')[0] if len(x.split('/'))>1 else '00')
+    col_acc, col_out = st.columns([3, 1])
+    with col_acc:
+        with st.expander("Security & Account Settings"):
+            new_u = st.text_input("Change Username", value=st.session_state.current_user)
+            new_p = st.text_input("New Password", type="password")
+            if st.button("Update Manager Account"):
+                if new_u and new_p:
+                    old_data = st.session_state.users_db.pop(st.session_state.current_user)
+                    st.session_state.users_db[new_u] = [new_p, "Manager", old_data[2]]
+                    save_users(st.session_state.users_db)
+                    st.session_state.current_user = new_u
+                    st.success("Account updated successfully!")
+    with col_out:
+        if st.button("Logout", use_container_width=True): navigate_to("LandingPage")
         
-        # Performance calculation per Employee
-        st.markdown("#### Performance by Employee & Team")
-        emp_perf = df.groupby(['Employee', 'Year', 'Month']).agg({'PR': 'sum', 'Investment': 'sum', 'Status': lambda x: (x == 'Sold').sum()}).reset_index()
-        st.dataframe(emp_perf, use_container_width=True)
-    else:
-        st.info("No records recorded yet.")
+    st.write("---")
 
-    # Company Wide Global CR Metrics
-    st.subheader("Global Company CR Analytics")
-    if not df.empty:
-        total_presents = len(df)
-        total_solds = (df['Status'] == 'Sold').sum()
-        st.metric("Total Company CR (All Groups Combined)", calculate_cr(total_solds, total_presents))
+    # Dynamic step-by-step navigation for choosing Team ➔ Member ➔ Data
+    team_list = ["انجمن نخبگان ایده پرداز", "کانون توسعه سرمایه", "کافه موفقیت", "ایده پردازان نوین", "فارمارک", "مستقل IT", "نسل آینده ساز گیشا"]
+
+    if st.session_state.manager_step == "SelectTeam":
+        st.subheader("Step 1: Select Team")
+        selected_team = st.selectbox("Choose a Team", team_list)
+        if st.button("Next ➔ Choose Member", type="primary"):
+            st.session_state.selected_team = selected_team
+            st.session_state.manager_step = "SelectMember"
+            st.rerun()
+
+    elif st.session_state.manager_step == "SelectMember":
+        st.subheader(f"Step 2: Select Member from Team: {st.session_state.selected_team}")
+        
+        # Get all employees belonging to the selected team
+        team_members = []
+        for username, data in st.session_state.users_db.items():
+            if len(data) > 2 and isinstance(data[2], dict):
+                if data[2].get("team") == st.session_state.selected_team and data[1] == "Employee":
+                    team_members.append(username)
+                    
+        member_options = ["All Team (کل تیم)"] + team_members
+        selected_member = st.selectbox("Choose Member", member_options)
+        
+        col_back, col_next = st.columns(2)
+        with col_back:
+            if st.button("⬅ Back to Teams", use_container_width=True):
+                st.session_state.manager_step = "SelectTeam"
+                st.rerun()
+        with col_next:
+            if st.button("Next ➔ Load Data", type="primary", use_container_width=True):
+                st.session_state.selected_member = selected_member
+                st.session_state.manager_step = "ShowData"
+                st.rerun()
+
+    elif st.session_state.manager_step == "ShowData":
+        team = st.session_state.selected_team
+        member = st.session_state.selected_member
+        
+        st.subheader(f"📊 Live Performance Report")
+        st.markdown(f"**Team:** `{team}` | **Selected Entity:** `{member}`")
+        
+        if st.button("⬅ Choose Another Team/Member"):
+            st.session_state.manager_step = "SelectTeam"
+            st.rerun()
+            
+        st.write("---")
+        
+        # Filter raw sales data based on selection
+        df_all = pd.DataFrame(st.session_state.sales_data) if st.session_state.sales_data else pd.DataFrame()
+        
+        # Get user list of this team to query collectively if needed
+        team_members_list = []
+        for u, d in st.session_state.users_db.items():
+            if len(d) > 2 and isinstance(d[2], dict) and d[2].get("team") == team and d[1] == "Employee":
+                team_members_list.append(u)
+
+        if not df_all.empty:
+            if member == "All Team (کل تیم)":
+                filtered_df = df_all[df_all['Employee'].isin(team_members_list)]
+            else:
+                filtered_df = df_all[df_all['Employee'] == member]
+        else:
+            filtered_df = pd.DataFrame()
+
+        if filtered_df.empty:
+            st.warning("No recorded sales/presentations exist for the selected choice yet.")
+        else:
+            # 1) CR per Product
+            st.markdown("### 1) CR per Product Type (نرخ تبدیل به تفکیک هر محصول)")
+            products = ["Simazar", "Andokhte dar", "Omid", "Finora/ Zarnova"]
+            cols_cr = st.columns(4)
+            for idx, prod in enumerate(products):
+                prod_df = filtered_df[filtered_df['Product'] == prod]
+                p_total = len(prod_df)
+                p_sold = (prod_df['Status'] == 'Sold').sum()
+                cols_cr[idx].metric(f"{prod} CR", calculate_cr(p_sold, p_total), f"Sold: {p_sold} / Total: {p_total}")
+
+            # 2) CR کلی
+            st.markdown("### 2) Global Conversion Rate (نرخ تبدیل کلی)")
+            total_presents = len(filtered_df)
+            total_solds = (filtered_df['Status'] == 'Sold').sum()
+            st.metric(label="Overall CR (کل ارائه‌ها)", value=calculate_cr(total_solds, total_presents))
+
+            # 3) Sales Table
+            st.markdown("### 3) Presentation & Sales Ledger (جدول ارائه‌ها و فروش)")
+            # Standardizing fields for display
+            display_df = filtered_df.copy()
+            display_df['Investment'] = display_df['Investment'].apply(lambda x: f"{int(x):,} Rial" if pd.notnull(x) else "0")
+            display_df['PR'] = display_df['PR'].apply(lambda x: f"{int(x):,} Rial" if pd.notnull(x) else "0")
+            
+            display_df = display_df.rename(columns={
+                "ShamsiDate": "تاریخ شمسی",
+                "Product": "نوع محصول",
+                "Investment": "مبلغ سرمایه‌گذاری",
+                "PR": "پورتفوی (PR)",
+                "Status": "وضعیت"
+            })
+            
+            existing_cols = ["تاریخ شمسی", "نوع محصول", "مبلغ سرمایه‌گذاری", "پورتفوی (PR)", "وضعیت", "Employee"]
+            valid_cols = [c for c in existing_cols if c in display_df.columns]
+            st.dataframe(display_df[valid_cols], use_container_width=True, hide_index=True)
+
+            # 4) Monthly Portfolio Aggregation
+            st.markdown("### 4) Monthly Cumulative Portfolio (جمع پورتفوی ماهانه)")
+            filtered_df['Month'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[1] if len(x.split('/')) > 1 else '00')
+            filtered_df['Year'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[0] if len(x.split('/')) > 1 else '00')
+            
+            monthly_pr = filtered_df.groupby(['Year', 'Month']).agg({'PR': 'sum'}).reset_index()
+            monthly_pr['Total PR (Formatted)'] = monthly_pr['PR'].apply(lambda x: f"{int(x):,} Rial")
+            
+            st.dataframe(monthly_pr[['Year', 'Month', 'Total PR (Formatted)']], use_container_width=True, hide_index=True)
 
 # --- EMPLOYEE DASHBOARD & NAVIGATED VIEWS ---
 elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "CustomersSold", "VisitorsLeads", "MyPortfolio", "ProfileSettings"]:
@@ -186,7 +286,6 @@ elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "Cu
     df_all = pd.DataFrame(st.session_state.sales_data) if st.session_state.sales_data else pd.DataFrame()
     df_user = df_all[df_all['Employee'] == st.session_state.current_user] if not df_all.empty else pd.DataFrame()
 
-    # Dynamic view switching based on state
     if st.session_state.current_page == "EmployeeDashboard":
         st.markdown(f"<h1>Welcome, Dear <i>{st.session_state.current_user}</i>!</h1>", unsafe_allow_html=True)
         st.subheader("Submit Presentation/Lead Details")
@@ -202,7 +301,6 @@ elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "Cu
         invest_val = 0
         if is_sale_successful:
             invest_str = st.text_input("Investment Amount (Rial)", value="0")
-            # Format inputs gracefully with thousands separators
             cleaned_invest = invest_str.replace(",", "")
             if cleaned_invest.isdigit():
                 invest_val = int(cleaned_invest)
@@ -236,12 +334,10 @@ elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "Cu
     elif st.session_state.current_page == "MyPortfolio":
         st.title("My Financial Portfolio & Conversion Rates")
         if not df_user.empty:
-            # Personal dynamic CR metrics
             total_p = len(df_user)
             total_s = (df_user['Status'] == 'Sold').sum()
             st.metric("My Total Conversion Rate (CR)", calculate_cr(total_s, total_p))
             
-            # Product specific breakdown
             st.markdown("#### CR Breakdown By Product Type")
             for prod in df_user['Product'].unique():
                 df_p = df_user[df_user['Product'] == prod]
@@ -276,7 +372,6 @@ elif st.session_state.current_page == "ConsumerData":
         smoker = st.radio("Smoker", ["Yes", "No"], horizontal=True)
         education = st.selectbox("Education", ["Under Diploma", "Diploma", "Bachelor's degree", "Master's degree", "PhD"])
 
-    # Comprehensive Entrepreneurial Insurance Compliant Job Classifications (Farsi)
     occupations_list = [
         "پزشک و کادر درمانی بالا رتبه", "کارمند اداری/شرکتی", "مهندس/مشاور فنی", 
         "فرهنگی/استاد دانشگاه/معلم", "بازنشسته کشوری یا لشگری", "خانه دار", 
@@ -291,7 +386,6 @@ elif st.session_state.current_page == "ConsumerData":
     cust_notes = st.text_area("Notes / Client Feedback")
 
     if st.button("Complete Entry & Save", type="primary"):
-        # Explicit mandatory validations
         final_occupation = custom_occupation if occupation == "سایر" else occupation
         
         if occupation == "سایر" and not custom_occupation:
@@ -301,7 +395,6 @@ elif st.session_state.current_page == "ConsumerData":
             invest = temp["Investment"]
             prod = temp["Product"]
             
-            # Calculation logic based on corporate rule weights
             pr = invest if prod in ["Simazar", "Andokhte dar", "Omid"] else (0.40 * invest)
             
             new_record = {
