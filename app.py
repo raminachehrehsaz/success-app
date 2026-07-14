@@ -89,6 +89,7 @@ if "temp_data" not in st.session_state: st.session_state.temp_data = {}
 if "manager_step" not in st.session_state: st.session_state.manager_step = "SelectTeam"
 if "selected_team" not in st.session_state: st.session_state.selected_team = ""
 if "selected_member" not in st.session_state: st.session_state.selected_member = ""
+if "trend_product_filter" not in st.session_state: st.session_state.trend_product_filter = "All (کل محصولات)"
 
 def navigate_to(page_name):
     st.session_state.current_page = page_name
@@ -202,10 +203,16 @@ elif st.session_state.current_page == "ManagerDashboard":
         st.subheader(f"📊 Live Performance Report")
         st.markdown(f"**Team:** `{team}` | **Selected Entity:** `{member}`")
         
-        if st.button("⬅ Choose Another Team/Member"):
-            st.session_state.manager_step = "SelectTeam"
-            st.rerun()
-            
+        col_nav1, col_nav2 = st.columns(2)
+        with col_nav1:
+            if st.button("⬅ Choose Another Team/Member", use_container_width=True):
+                st.session_state.manager_step = "SelectTeam"
+                st.rerun()
+        with col_nav2:
+            if st.button("📈 View CR Trend Chart (نمودار روند تبدیل)", type="primary", use_container_width=True):
+                st.session_state.manager_step = "ShowTrend"
+                st.rerun()
+                
         st.write("---")
         
         df_all = pd.DataFrame(st.session_state.sales_data) if st.session_state.sales_data else pd.DataFrame()
@@ -226,7 +233,6 @@ elif st.session_state.current_page == "ManagerDashboard":
         if filtered_df.empty:
             st.warning("No recorded sales/presentations exist for the selected choice yet.")
         else:
-            # Generate Year and Month helper columns
             filtered_df['Month'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[1] if len(x.split('/')) > 1 else '00')
             filtered_df['Year'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[0] if len(x.split('/')) > 1 else '00')
             
@@ -264,7 +270,7 @@ elif st.session_state.current_page == "ManagerDashboard":
             valid_cols = [c for c in existing_cols if c in display_df.columns]
             st.dataframe(display_df[valid_cols], use_container_width=True, hide_index=True)
 
-            # 4) Monthly Portfolio & CR Aggregation (برای ماه‌های قبل و جاری)
+            # 4) Monthly Portfolio & CR Aggregation
             st.markdown("### 4) Monthly Cumulative Portfolio & CR Archive (عملکرد و پورتفوی ماه‌های قبل)")
             
             unique_months = filtered_df.groupby(['Year', 'Month']).size().reset_index()[['Year', 'Month']]
@@ -279,7 +285,6 @@ elif st.session_state.current_page == "ManagerDashboard":
                 m_cr = calculate_cr(m_total_solds, m_total_presents)
                 m_pr = m_df['PR'].sum()
                 
-                # Product-specific CR for this month (0% if no sales occurred but presentation did)
                 prod_cr_details = []
                 for prod in products:
                     prod_m_df = m_df[m_df['Product'] == prod]
@@ -301,6 +306,92 @@ elif st.session_state.current_page == "ManagerDashboard":
                 })
             
             st.dataframe(pd.DataFrame(monthly_records), use_container_width=True, hide_index=True)
+
+    elif st.session_state.manager_step == "ShowTrend":
+        team = st.session_state.selected_team
+        member = st.session_state.selected_member
+        
+        st.subheader("📈 CR Trend Analysis (روند تغییرات نرخ تبدیل)")
+        st.markdown(f"**Team:** `{team}` | **Member:** `{member}`")
+        
+        if st.button("⬅ Back to Performance Report (بازگشت به گزارش عملکرد)"):
+            st.session_state.manager_step = "ShowData"
+            st.rerun()
+            
+        st.write("---")
+        
+        df_all = pd.DataFrame(st.session_state.sales_data) if st.session_state.sales_data else pd.DataFrame()
+        
+        team_members_list = []
+        for u, d in st.session_state.users_db.items():
+            if len(d) > 2 and isinstance(d[2], dict) and d[2].get("team") == team and d[1] == "Employee":
+                team_members_list.append(u)
+
+        if not df_all.empty:
+            if member == "All Team (کل تیم)":
+                filtered_df = df_all[df_all['Employee'].isin(team_members_list)].copy()
+            else:
+                filtered_df = df_all[df_all['Employee'] == member].copy()
+        else:
+            filtered_df = pd.DataFrame()
+            
+        if filtered_df.empty:
+            st.warning("No data available to plot trends.")
+        else:
+            filtered_df['Month'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[1] if len(x.split('/')) > 1 else '00')
+            filtered_df['Year'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[0] if len(x.split('/')) > 1 else '00')
+            filtered_df['YearMonth'] = filtered_df['Year'] + "/" + filtered_df['Month']
+            
+            products_options = ["All (کل محصولات)", "Simazar", "Andokhte dar", "Omid", "Finora/ Zarnova"]
+            selected_prod_trend = st.selectbox("Select Product to View Trend (انتخاب محصول جهت بررسی روند):", products_options)
+            
+            if selected_prod_trend != "All (کل محصولات)":
+                trend_df = filtered_df[filtered_df['Product'] == selected_prod_trend].copy()
+            else:
+                trend_df = filtered_df.copy()
+                
+            if trend_df.empty:
+                st.info(f"داده‌ای برای محصول {selected_prod_trend} در بازه زمانی مشخص شده یافت نشد.")
+            else:
+                grouped = trend_df.groupby('YearMonth')
+                trend_records = []
+                
+                for ym, group in grouped:
+                    total_presents = len(group)
+                    total_solds = (group['Status'] == 'Sold').sum()
+                    cr_percentage = (total_solds / total_presents * 100) if total_presents > 0 else 0.0
+                    
+                    trend_records.append({
+                        "تاریخ (سال/ماه)": ym,
+                        "کل پرزنت‌ها": total_presents,
+                        "فروش موفق": total_solds,
+                        "نرخ تبدیل (CR %)": round(cr_percentage, 1)
+                    })
+                
+                chart_data = pd.DataFrame(trend_records).sort_values(by="تاریخ (سال/ماه)")
+                
+                col_metric1, col_metric2 = st.columns(2)
+                total_p_trend = chart_data["کل پرزنت‌ها"].sum()
+                total_s_trend = chart_data["فروش موفق"].sum()
+                global_cr_trend = (total_s_trend / total_p_trend * 100) if total_p_trend > 0 else 0
+                
+                with col_metric1:
+                    st.metric(f"Total Presentations ({selected_prod_trend})", f"{total_p_trend} Presents")
+                with col_metric2:
+                    st.metric(f"Overall CR ({selected_prod_trend})", f"{global_cr_trend:.1f}%")
+                
+                st.write("### نمودار تعاملی روند تغییرات نرخ تبدیل (CR)")
+                
+                chart_data_display = chart_data.set_index("تاریخ (سال/ماه)")
+                
+                st.line_chart(
+                    chart_data_display["نرخ تبدیل (CR %)"], 
+                    use_container_width=True,
+                    color="#f1c40f"
+                )
+                
+                with st.expander("📝 مشاهده جزئیات جدول روند"):
+                    st.dataframe(chart_data, use_container_width=True, hide_index=True)
 
 # --- EMPLOYEE DASHBOARD & NAVIGATED VIEWS ---
 elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "CustomersSold", "VisitorsLeads", "MyPortfolio", "ProfileSettings"]:
@@ -363,24 +454,20 @@ elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "Cu
     elif st.session_state.current_page == "VisitorsLeads":
         st.title("Visitors (Presented but Not Purchased)")
         
-        # Interactive UI for writing reasons/followups for unsuccessful presentations
         leads_exist = False
         for idx, record in enumerate(st.session_state.sales_data):
             if record['Employee'] == st.session_state.current_user and record['Status'] == 'Lead':
                 leads_exist = True
                 st.markdown(f"### 📍 Present: {record['Product']} ({record['ShamsiDate']})")
                 
-                # Double safety initializer
                 if "follow_ups" not in record:
                     record["follow_ups"] = []
                 
-                # Show existing registered follow ups
                 if record["follow_ups"]:
                     st.markdown("**ثبت شده:**")
                     for f_idx, note in enumerate(record["follow_ups"]):
                         st.markdown(f"<div class='followup-box'>{f_idx+1}) {note}</div>", unsafe_allow_html=True)
                 
-                # Add new follow-ups interface if less than 3
                 current_count = len(record["follow_ups"])
                 if current_count < 3:
                     col_input, col_add = st.columns([5, 1])
