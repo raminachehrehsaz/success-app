@@ -56,7 +56,7 @@ st.markdown("""
 
 USERS_FILE = "users_db.json"
 SALES_FILE = "sales_data.json"
-TEAMS_LIST = ["انجمن نخبگان ایده پرداز", "کانون توسعه سرمایه", "کافه موفقیت", "ایده پردازان نوین", "فارمارک", "مستقل IT", "نسل آینده ساز گیشا"]
+TEAMS_LIST = ["Idea Generators Elite", "Capital Development", "Success Cafe", "Modern Thinkers", "Pharmark", "Independent IT", "Gisha Future Makers"]
 
 def load_users():
     if os.path.exists(USERS_FILE):
@@ -147,23 +147,23 @@ elif st.session_state.current_page in ["ManagerLoginPanel", "EmployeeLoginPanel"
 # --- MANAGER DASHBOARD & NAVIGATION ---
 elif st.session_state.current_page in ["ManagerDashboard", "ManagerLiveReport", "ManagerLedger", "ManagerArchive", "ManagerTrend", "ManagerSettings"]:
     
-    # --- MANAGER SIDEBAR MENU ---
+    # --- MANAGER SIDEBAR MENU (ENGLISH) ---
     with st.sidebar:
-        st.markdown(f"### ⚙️ منوی مدیریت")
-        st.markdown(f"**کاربر:** `{st.session_state.current_user}`")
+        st.markdown(f"### ⚙️ Management Menu")
+        st.markdown(f"**User:** `{st.session_state.current_user}`")
         if st.session_state.selected_team:
-            st.markdown(f"**تیم منتخب:** `{st.session_state.selected_team}`")
-            st.markdown(f"**عضو منتخب:** `{st.session_state.selected_member}`")
+            st.markdown(f"**Team:** `{st.session_state.selected_team}`")
+            st.markdown(f"**Member:** `{st.session_state.selected_member}`")
         st.write("---")
         
-        if st.button("👥 انتخاب تیم و عضو", use_container_width=True): navigate_to("ManagerDashboard")
-        if st.button("📊 نرخ تبدیل محصولات و کلی", use_container_width=True): navigate_to("ManagerLiveReport")
-        if st.button("📋 جدول ارائه‌ها و فروش", use_container_width=True): navigate_to("ManagerLedger")
-        if st.button("📅 آرشیو عملکرد ماه‌های قبل", use_container_width=True): navigate_to("ManagerArchive")
-        if st.button("📈 نمودار روند تبدیل (CR)", use_container_width=True): navigate_to("ManagerTrend")
-        if st.button("🛡️ تنظیمات امنیتی حساب", use_container_width=True): navigate_to("ManagerSettings")
+        if st.button("👥 Select Team & Member", use_container_width=True): navigate_to("ManagerDashboard")
+        if st.button("📊 Conversion Rates (CR)", use_container_width=True): navigate_to("ManagerLiveReport")
+        if st.button("📋 Presentation & Sales Ledger", use_container_width=True): navigate_to("ManagerLedger")
+        if st.button("📅 Monthly Performance Archive", use_container_width=True): navigate_to("ManagerArchive")
+        if st.button("📈 CR Trend Analysis", use_container_width=True): navigate_to("ManagerTrend")
+        if st.button("🛡️ Account Security Settings", use_container_width=True): navigate_to("ManagerSettings")
         st.write("---")
-        if st.button("🚪 خروج از حساب", use_container_width=True): 
+        if st.button("🚪 Logout", use_container_width=True): 
             st.session_state.selected_team = ""
             st.session_state.selected_member = ""
             navigate_to("LandingPage")
@@ -188,18 +188,18 @@ elif st.session_state.current_page in ["ManagerDashboard", "ManagerLiveReport", 
 
     # --- 1) MANAGER DASHBOARD: SELECT TEAM & MEMBER ---
     if st.session_state.current_page == "ManagerDashboard":
-        st.title("👥 انتخاب تیم و عضو جهت بررسی")
+        st.title("👥 Select Team & Member to Review")
         
         if st.session_state.manager_step == "SelectTeam":
-            st.subheader("مرحله اول: انتخاب تیم")
-            selected_team = st.selectbox("تیم مورد نظر را انتخاب کنید:", TEAMS_LIST)
-            if st.button("بعدی ➔ انتخاب عضو", type="primary"):
+            st.subheader("Step 1: Select Team")
+            selected_team = st.selectbox("Choose a Team:", TEAMS_LIST)
+            if st.button("Next ➔ Choose Member", type="primary"):
                 st.session_state.selected_team = selected_team
                 st.session_state.manager_step = "SelectMember"
                 st.rerun()
 
         elif st.session_state.manager_step == "SelectMember":
-            st.subheader(f"مرحله دوم: انتخاب عضو از تیم: {st.session_state.selected_team}")
+            st.subheader(f"Step 2: Choose Member from Team: {st.session_state.selected_team}")
             
             team_members = []
             for username, data in st.session_state.users_db.items():
@@ -208,29 +208,28 @@ elif st.session_state.current_page in ["ManagerDashboard", "ManagerLiveReport", 
                         team_members.append(username)
                         
             member_options = ["All Team (کل تیم)"] + team_members
-            selected_member = st.selectbox("عضو مورد نظر را انتخاب کنید:", member_options)
+            selected_member = st.selectbox("Choose a Member:", member_options)
             
             col_back, col_next = st.columns(2)
             with col_back:
-                if st.button("⬅ بازگشت به انتخاب تیم", use_container_width=True):
+                if st.button("⬅ Back to Select Team", use_container_width=True):
                     st.session_state.manager_step = "SelectTeam"
                     st.rerun()
             with col_next:
-                if st.button("تایید و بارگذاری اطلاعات ➔", type="primary", use_container_width=True):
+                if st.button("Confirm & Load Data ➔", type="primary", use_container_width=True):
                     st.session_state.selected_member = selected_member
-                    st.success(f"اطلاعات تیم {st.session_state.selected_team} با موفقیت بارگذاری شد. از منوی کناری بخش دلخواه خود را بررسی کنید.")
+                    st.success(f"Data for {st.session_state.selected_team} loaded successfully! Use the sidebar menu to explore metrics.")
                     navigate_to("ManagerLiveReport")
 
     # --- 2) MANAGER LIVE REPORT (CR & METRICS) ---
     elif st.session_state.current_page == "ManagerLiveReport":
-        st.title("📊 گزارش نرخ‌های تبدیل")
+        st.title("📊 Conversion Rate Metrics")
         if not team:
-            st.warning("⚠️ لطفاً ابتدا از منوی کناری بخش 'انتخاب تیم و عضو' تیم خود را انتخاب کنید.")
+            st.warning("⚠️ Please select your target team and member from 'Select Team & Member' section in the sidebar first.")
         elif filtered_df.empty:
-            st.info("داده‌ای برای تیم یا عضو انتخاب شده یافت نشد.")
+            st.info("No recorded sales/presentations exist for the selected choices.")
         else:
-            # 1) CR per Product
-            st.markdown("### 1) CR per Product Type (نرخ تبدیل به تفکیک هر محصول)")
+            st.markdown("### 1) CR per Product Type")
             products = ["Simazar", "Andokhte dar", "Omid", "Finora/ Zarnova"]
             cols_cr = st.columns(4)
             for idx, prod in enumerate(products):
@@ -240,43 +239,42 @@ elif st.session_state.current_page in ["ManagerDashboard", "ManagerLiveReport", 
                 cols_cr[idx].metric(f"{prod} CR", calculate_cr(p_sold, p_total), f"Sold: {p_sold} / Total: {p_total}")
 
             st.write("---")
-            # 2) CR کلی
-            st.markdown("### 2) Global Conversion Rate (نرخ تبدیل کلی)")
+            st.markdown("### 2) Global Conversion Rate")
             total_presents = len(filtered_df)
             total_solds = (filtered_df['Status'] == 'Sold').sum()
-            st.metric(label="Overall CR (کل ارائه‌ها)", value=calculate_cr(total_solds, total_presents))
+            st.metric(label="Overall CR (Total Presentations)", value=calculate_cr(total_solds, total_presents))
 
     # --- 3) MANAGER PRESENTATION LEDGER ---
     elif st.session_state.current_page == "ManagerLedger":
-        st.title("📋 جدول ارائه‌ها و فروش")
+        st.title("📋 Presentation & Sales Ledger")
         if not team:
-            st.warning("⚠️ لطفاً ابتدا از منوی کناری بخش 'انتخاب تیم و عضو' تیم خود را انتخاب کنید.")
+            st.warning("⚠️ Please select your target team and member from 'Select Team & Member' section in the sidebar first.")
         elif filtered_df.empty:
-            st.info("داده‌ای برای تیم یا عضو انتخاب شده یافت نشد.")
+            st.info("No recorded sales/presentations exist for the selected choices.")
         else:
             display_df = filtered_df.copy()
             display_df['Investment'] = display_df['Investment'].apply(lambda x: f"{int(x):,} Rial" if pd.notnull(x) else "0")
             display_df['PR'] = display_df['PR'].apply(lambda x: f"{int(x):,} Rial" if pd.notnull(x) else "0")
             
             display_df = display_df.rename(columns={
-                "ShamsiDate": "تاریخ شمسی",
-                "Product": "نوع محصول",
-                "Investment": "مبلغ سرمایه‌گذاری",
-                "PR": "پورتفوی (PR)",
-                "Status": "وضعیت"
+                "ShamsiDate": "Shamsi Date",
+                "Product": "Product Type",
+                "Investment": "Investment Value",
+                "PR": "Portfolio (PR)",
+                "Status": "Status"
             })
             
-            existing_cols = ["تاریخ شمسی", "نوع محصول", "مبلغ سرمایه‌گذاری", "پورتفوی (PR)", "وضعیت", "Employee"]
+            existing_cols = ["Shamsi Date", "Product Type", "Investment Value", "Portfolio (PR)", "Status", "Employee"]
             valid_cols = [c for c in existing_cols if c in display_df.columns]
             st.dataframe(display_df[valid_cols], use_container_width=True, hide_index=True)
 
     # --- 4) MANAGER ARCHIVE (MONTHLY ACCUMULATIVE) ---
     elif st.session_state.current_page == "ManagerArchive":
-        st.title("📅 آرشیو عملکرد و پورتفوی ماه‌های قبل")
+        st.title("📅 Monthly Cumulative Portfolio & CR Archive")
         if not team:
-            st.warning("⚠️ لطفاً ابتدا از منوی کناری بخش 'انتخاب تیم و عضو' تیم خود را انتخاب کنید.")
+            st.warning("⚠️ Please select your target team and member from 'Select Team & Member' section in the sidebar first.")
         elif filtered_df.empty:
-            st.info("داده‌ای برای تیم یا عضو انتخاب شده یافت نشد.")
+            st.info("No recorded sales/presentations exist for the selected choices.")
         else:
             filtered_df['Month'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[1] if len(x.split('/')) > 1 else '00')
             filtered_df['Year'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[0] if len(x.split('/')) > 1 else '00')
@@ -305,39 +303,39 @@ elif st.session_state.current_page in ["ManagerDashboard", "ManagerLiveReport", 
                         prod_cr_details.append(f"{prod}: N/A")
                 
                 monthly_records.append({
-                    "سال": y,
-                    "ماه": m,
-                    "کل پرزنت‌ها": m_total_presents,
-                    "فروش موفق": m_total_solds,
-                    "نرخ تبدیل ماهانه (CR)": m_cr,
-                    "مجموع پورتفوی (PR)": f"{int(m_pr):,} Rial",
-                    "جزئیات محصولات": " | ".join(prod_cr_details)
+                    "Year": y,
+                    "Month": m,
+                    "Total Presents": m_total_presents,
+                    "Successful Solds": m_total_solds,
+                    "Monthly CR": m_cr,
+                    "Total Portfolio (PR)": f"{int(m_pr):,} Rial",
+                    "Product Details Breakdown": " | ".join(prod_cr_details)
                 })
             
             st.dataframe(pd.DataFrame(monthly_records), use_container_width=True, hide_index=True)
 
     # --- 5) MANAGER TREND CHART ---
     elif st.session_state.current_page == "ManagerTrend":
-        st.title("📈 روند تغییرات نرخ تبدیل (CR)")
+        st.title("📈 CR Trend Analysis")
         if not team:
-            st.warning("⚠️ لطفاً ابتدا از منوی کناری بخش 'انتخاب تیم و عضو' تیم خود را انتخاب کنید.")
+            st.warning("⚠️ Please select your target team and member from 'Select Team & Member' section in the sidebar first.")
         elif filtered_df.empty:
-            st.info("داده‌ای جهت رسم نمودار یافت نشد.")
+            st.info("No recorded sales data available to generate charts.")
         else:
             filtered_df['Month'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[1] if len(x.split('/')) > 1 else '00')
             filtered_df['Year'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[0] if len(x.split('/')) > 1 else '00')
             filtered_df['YearMonth'] = filtered_df['Year'] + "/" + filtered_df['Month']
             
-            products_options = ["All (کل محصولات)", "Simazar", "Andokhte dar", "Omid", "Finora/ Zarnova"]
-            selected_prod_trend = st.selectbox("فیلتر محصول جهت بررسی روند نمودار:", products_options)
+            products_options = ["All Products", "Simazar", "Andokhte dar", "Omid", "Finora/ Zarnova"]
+            selected_prod_trend = st.selectbox("Filter Product Type for Trend Graph:", products_options)
             
-            if selected_prod_trend != "All (کل محصولات)":
+            if selected_prod_trend != "All Products":
                 trend_df = filtered_df[filtered_df['Product'] == selected_prod_trend].copy()
             else:
                 trend_df = filtered_df.copy()
                 
             if trend_df.empty:
-                st.info(f"داده‌ای برای محصول {selected_prod_trend} یافت نشد.")
+                st.info(f"No records found for product: {selected_prod_trend}")
             else:
                 grouped = trend_df.groupby('YearMonth')
                 trend_records = []
@@ -348,17 +346,17 @@ elif st.session_state.current_page in ["ManagerDashboard", "ManagerLiveReport", 
                     cr_percentage = (total_solds / total_presents * 100) if total_presents > 0 else 0.0
                     
                     trend_records.append({
-                        "تاریخ (سال/ماه)": ym,
-                        "کل پرزنت‌ها": total_presents,
-                        "فروش موفق": total_solds,
-                        "نرخ تبدیل (CR %)": round(cr_percentage, 1)
+                        "Date (Year/Month)": ym,
+                        "Total Presents": total_presents,
+                        "Successful Solds": total_solds,
+                        "Conversion Rate (CR %)": round(cr_percentage, 1)
                     })
                 
-                chart_data = pd.DataFrame(trend_records).sort_values(by="تاریخ (سال/ماه)")
+                chart_data = pd.DataFrame(trend_records).sort_values(by="Date (Year/Month)")
                 
                 col_metric1, col_metric2 = st.columns(2)
-                total_p_trend = chart_data["کل پرزنت‌ها"].sum()
-                total_s_trend = chart_data["فروش موفق"].sum()
+                total_p_trend = chart_data["Total Presents"].sum()
+                total_s_trend = chart_data["Successful Solds"].sum()
                 global_cr_trend = (total_s_trend / total_p_trend * 100) if total_p_trend > 0 else 0
                 
                 with col_metric1:
@@ -367,25 +365,25 @@ elif st.session_state.current_page in ["ManagerDashboard", "ManagerLiveReport", 
                     st.metric(f"Overall CR ({selected_prod_trend})", f"{global_cr_trend:.1f}%")
                 
                 st.line_chart(
-                    chart_data.set_index("تاریخ (سال/ماه)")["نرخ تبدیل (CR %)"], 
+                    chart_data.set_index("Date (Year/Month)")["Conversion Rate (CR %)"], 
                     use_container_width=True,
                     color="#f1c40f"
                 )
 
     # --- 6) MANAGER SECURITY SETTINGS ---
     elif st.session_state.current_page == "ManagerSettings":
-        st.title("🛡️ تنظیمات امنیتی حساب کاربری مدیر")
-        new_u = st.text_input("تغییر نام کاربری مدیریت", value=st.session_state.current_user)
-        new_p = st.text_input("رمز عبور جدید مدیریت", type="password")
-        if st.button("بروزرسانی حساب کاربری"):
+        st.title("🛡️ Account Security Settings")
+        new_u = st.text_input("Change Manager Username", value=st.session_state.current_user)
+        new_p = st.text_input("New Manager Password", type="password")
+        if st.button("Update Manager Profile"):
             if new_u and new_p:
                 old_data = st.session_state.users_db.pop(st.session_state.current_user)
                 st.session_state.users_db[new_u] = [new_p, "Manager", old_data[2]]
                 save_users(st.session_state.users_db)
                 st.session_state.current_user = new_u
-                st.success("حساب کاربری مدیریت با موفقیت بروزرسانی شد!")
+                st.success("Manager administrative account credentials updated successfully!")
             else:
-                st.error("لطفاً همه فیلدها را پر کنید.")
+                st.error("Fields cannot be left blank.")
 
 # --- EMPLOYEE DASHBOARD & NAVIGATED VIEWS ---
 elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "CustomersSold", "VisitorsLeads", "MyPortfolio", "ProfileSettings"]:
@@ -458,7 +456,7 @@ elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "Cu
                     record["follow_ups"] = []
                 
                 if record["follow_ups"]:
-                    st.markdown("**ثبت شده:**")
+                    st.markdown("**Logs:**")
                     for f_idx, note in enumerate(record["follow_ups"]):
                         st.markdown(f"<div class='followup-box'>{f_idx+1}) {note}</div>", unsafe_allow_html=True)
                 
@@ -466,19 +464,19 @@ elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "Cu
                 if current_count < 3:
                     col_input, col_add = st.columns([5, 1])
                     with col_input:
-                        new_note = st.text_input(f"توضیحات کوتاه علت عدم خرید ({current_count}/3):", key=f"note_in_{idx}")
+                        new_note = st.text_input(f"Reason for not buying ({current_count}/3):", key=f"note_in_{idx}")
                     with col_add:
                         st.markdown("<br>", unsafe_allow_html=True)
-                        if st.button("➕ ثبت", key=f"add_btn_{idx}"):
+                        if st.button("➕ Log", key=f"add_btn_{idx}"):
                             if new_note.strip():
                                 record["follow_ups"].append(new_note.strip())
                                 save_sales(st.session_state.sales_data)
-                                st.success("توضیحات با موفقیت ثبت شد!")
+                                st.success("Note saved successfully!")
                                 st.rerun()
                             else:
-                                st.error("متن را وارد کنید.")
+                                st.error("Please enter a text description.")
                 else:
-                    st.info("حداکثر ۳ مورد توضیح برای این پرزنت ثبت شده است.")
+                    st.info("Maximum 3 logging notes have already been saved for this lead entry.")
                 st.write("---")
                 
         if not leads_exist:
@@ -565,23 +563,23 @@ elif st.session_state.current_page == "ConsumerData":
         education = st.selectbox("Education", ["Under Diploma", "Diploma", "Bachelor's degree", "Master's degree", "PhD"])
 
     occupations_list = [
-        "پزشک و کادر درمانی بالا رتبه", "کارمند اداری/شرکتی", "مهندس/مشاور فنی", 
-        "فرهنگی/استاد دانشگاه/معلم", "بازنشسته کشوری یا لشگری", "خانه دار", 
-        "شغل آزاد/اصناف مستقل", "کارگر صنعتی/امور فنی دستمزد", "دانشجو/دانش آموز", "سایر"
+        "Medical Doctor / Senior Healthcare Staff", "Administrative / Corporate Employee", "Engineer / Technical Consultant", 
+        "Academic / University Professor / Teacher", "Government or Military Retired", "Homemaker", 
+        "Self-Employed / Independent Business owner", "Industrial Worker / Technician", "Student", "Other"
     ]
-    occupation = st.selectbox("Occupation (شغل)", occupations_list)
+    occupation = st.selectbox("Occupation", occupations_list)
     
     custom_occupation = ""
-    if occupation == "سایر":
-        custom_occupation = st.text_input("لطفاً شغل دقیق را بنویسید:")
+    if occupation == "Other":
+        custom_occupation = st.text_input("Please specify your exact occupation:")
 
     cust_notes = st.text_area("Notes / Client Feedback")
 
     if st.button("Complete Entry & Save", type="primary"):
-        final_occupation = custom_occupation if occupation == "سایر" else occupation
+        final_occupation = custom_occupation if occupation == "Other" else occupation
         
-        if occupation == "سایر" and not custom_occupation:
-            st.error("لطفا فیلد سایر شغل را پر کنید.")
+        if occupation == "Other" and not custom_occupation:
+            st.error("Please fill out the custom occupation description field.")
         else:
             temp = st.session_state.temp_data
             invest = temp["Investment"]
