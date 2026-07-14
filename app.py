@@ -6,7 +6,6 @@ from datetime import datetime
 
 # Convert Gregorian date to Shamsi (Simplified Persian Calendar converter for default selection)
 def get_current_shamsi():
-    # 2026 is a leap year contextually. Let's calculate a reliable simplified mapping or fallback.
     today = datetime.now()
     gy = today.year
     gm = today.month
@@ -16,10 +15,8 @@ def get_current_shamsi():
     if (gy % 4 == 0 and gy % 100 != 0) or (gy % 400 == 0):
         g_days_in_month[1] = 29
 
-    # Calculate days from start of Gregorian year
     g_day_no = sum(g_days_in_month[:gm - 1]) + gd
 
-    # Basic Shamsi conversion formula
     if g_day_no > 79:
         sh_day_no = g_day_no - 79
         sh_year = gy - 621
@@ -31,9 +28,7 @@ def get_current_shamsi():
             sh_month = (sh_day_no_2 - 1) // 30 + 7
             sh_day = (sh_day_no_2 - 1) % 30 + 1
     else:
-        # Before Vernal Equinox
         sh_year = gy - 622
-        # Check leap year for previous shamsi year
         is_prev_sh_leap = ((sh_year % 33) in [1, 5, 9, 13, 17, 22, 26, 30])
         prev_year_days = 366 if is_prev_sh_leap else 365
         sh_day_no = prev_year_days - (79 - g_day_no)
@@ -387,8 +382,8 @@ elif st.session_state.current_page == "ManagerDashboard":
 
 # ----------------- Employee Dashboard -----------------
 elif st.session_state.current_page == "EmployeeDashboard":
-    # Enhanced "Welcome Dear" header with formatting and emoji styling
-    st.markdown(f"<h1>✨ Welcome, Dear <i>{st.session_state.current_employee}</i>! ✨</h1>", unsafe_allow_html=True)
+    # Removed the decorative stars from the header
+    st.markdown(f"<h1>Welcome, Dear <i>{st.session_state.current_employee}</i>!</h1>", unsafe_allow_html=True)
     
     col_logout = st.columns([3, 1])[1]
     if col_logout.button("Logout", use_container_width=True):
@@ -397,7 +392,6 @@ elif st.session_state.current_page == "EmployeeDashboard":
         
     st.subheader("Submit Sale/Lead Details")
     
-    # Date selection layout (The "(Shamsi)" label has been removed as requested)
     col_y, col_m, col_d = st.columns(3)
     
     # Year Options Setup
