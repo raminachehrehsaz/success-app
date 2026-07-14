@@ -4,19 +4,14 @@ import json
 import os
 from datetime import datetime
 
-# Convert Gregorian date to Shamsi (Simplified Persian Calendar converter for default selection)
+# --- FUNCTIONS & HELPERS ---
 def get_current_shamsi():
     today = datetime.now()
-    gy = today.year
-    gm = today.month
-    gd = today.day
-
+    gy, gm, gd = today.year, today.month, today.day
     g_days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     if (gy % 4 == 0 and gy % 100 != 0) or (gy % 400 == 0):
         g_days_in_month[1] = 29
-
     g_day_no = sum(g_days_in_month[:gm - 1]) + gd
-
     if g_day_no > 79:
         sh_day_no = g_day_no - 79
         sh_year = gy - 621
@@ -30,8 +25,7 @@ def get_current_shamsi():
     else:
         sh_year = gy - 622
         is_prev_sh_leap = ((sh_year % 33) in [1, 5, 9, 13, 17, 22, 26, 30])
-        prev_year_days = 366 if is_prev_sh_leap else 365
-        sh_day_no = prev_year_days - (79 - g_day_no)
+        sh_day_no = (366 if is_prev_sh_leap else 365) - (79 - g_day_no)
         if sh_day_no <= 186:
             sh_month = (sh_day_no - 1) // 31 + 1
             sh_day = (sh_day_no - 1) % 31 + 1
@@ -39,91 +33,24 @@ def get_current_shamsi():
             sh_day_no_2 = sh_day_no - 186
             sh_month = (sh_day_no_2 - 1) // 30 + 7
             sh_day = (sh_day_no_2 - 1) % 30 + 1
-
-    return str(sh_year), str(sh_month), str(sh_day)
+    return str(sh_year), f"{sh_month:02d}", f"{sh_day:02d}"
 
 sh_y_now, sh_m_now, sh_d_now = get_current_shamsi()
 
-st.set_page_config(page_title="Enterprise Manager & Employee Portal", layout="centered")
+st.set_page_config(page_title="Enterprise Portal", layout="wide")
 
-# --- Elegant, Dark Blue Gold/Neon Gradient Theme with Fixed Input Colors ---
+# --- CUSTOM CSS FOR THEME, ALIGNMENT & MENU ---
 st.markdown("""
     <style>
-        .stApp {
-            background: linear-gradient(180deg, #070b12 0%, #101726 100%);
-            color: #e2e8f0;
-        }
-        
-        h1, h2, h3, h4, h5, h6, label, p {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        h1, h2, h3, h4, h5, h6, label {
-            color: #f1c40f !important;
-            text-shadow: 0 0 12px rgba(241, 196, 15, 0.25);
-            font-weight: 600 !important;
-        }
-        
-        div[data-baseweb="input"] {
-            background-color: #0c1220 !important;
-            border: 1px solid rgba(241, 196, 15, 0.4) !important;
-            border-radius: 8px !important;
-            transition: all 0.3s ease-in-out !important;
-        }
-        
-        div[data-baseweb="input"]:focus-within {
-            border-color: #00e5ff !important;
-            box-shadow: 0 0 10px rgba(0, 229, 255, 0.35) !important;
-        }
-        
-        input {
-            background-color: #0c1220 !important;
-            color: #ffffff !important;
-            -webkit-text-fill-color: #ffffff !important;
-        }
-
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover, 
-        input:-webkit-autofill:focus, 
-        input:-webkit-autofill:active {
-            -webkit-box-shadow: 0 0 0 30px #0c1220 inset !important;
-            -webkit-text-fill-color: #ffffff !important;
-        }
-        
-        div[data-baseweb="select"] {
-            background-color: #0c1220 !important;
-        }
-        
-        div[data-baseweb="select"] * {
-            color: #ffffff !important;
-        }
-        
-        .stButton>button {
-            background: linear-gradient(135deg, #e6b800 0%, #c19600 100%) !important;
-            color: #070b12 !important;
-            font-weight: 600 !important;
-            border: none !important;
-            border-radius: 8px !important;
-            box-shadow: 0 4px 12px rgba(193, 150, 0, 0.2) !important;
-            transition: all 0.4s ease !important;
-        }
-        
-        .stButton>button:hover {
-            background: linear-gradient(135deg, #00d9f5 0%, #0077b3 100%) !important;
-            color: #ffffff !important;
-            box-shadow: 0 6px 18px rgba(0, 217, 245, 0.4) !important;
-            transform: translateY(-1px);
-        }
-        
-        hr {
-            border-color: rgba(241, 196, 15, 0.15) !important;
-        }
-        
-        .signup-text {
-            color: rgba(241, 196, 15, 0.8);
-            font-size: 1.1rem;
-            margin-top: 8px;
-        }
+        .stApp { background: linear-gradient(180deg, #070b12 0%, #101726 100%); color: #e2e8f0; }
+        h1, h2, h3, h4, h5, h6, label, p { font-family: 'Segoe UI', Tahoma, sans-serif; }
+        h1, h2, h3, h4, h5, h6, label { color: #f1c40f !important; font-weight: 600 !important; }
+        div[data-baseweb="input"], div[data-baseweb="select"] { background-color: #0c1220 !important; border: 1px solid rgba(241, 196, 15, 0.4) !important; border-radius: 8px !important; }
+        input { background-color: #0c1220 !important; color: #ffffff !important; }
+        .stButton>button { background: linear-gradient(135deg, #e6b800 0%, #c19600 100%) !important; color: #070b12 !important; font-weight: 600 !important; border-radius: 8px !important; }
+        .stButton>button:hover { background: linear-gradient(135deg, #00d9f5 0%, #0077b3 100%) !important; color: #ffffff !important; }
+        /* Right sidebar alignment for employee navigation */
+        [data-testid="stSidebar"] { background-color: #090e18 !important; border-left: 1px solid rgba(241, 196, 15, 0.2); }
     </style>
 """, unsafe_allow_html=True)
 
@@ -132,340 +59,252 @@ SALES_FILE = "sales_data.json"
 
 def load_users():
     if os.path.exists(USERS_FILE):
-        try:
-            with open(USERS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            pass
-    return {
-        "admin": ["admin", "Manager"],
-        "RaminaChehrehsaz": ["123456", "Manager"]
-    }
+        with open(USERS_FILE, "r", encoding="utf-8") as f: return json.load(f)
+    return {"admin": ["admin", "Manager", {"team": "Global"}], "RaminaChehrehsaz": ["123456", "Manager", {"team": "Global"}]}
 
 def save_users(users):
-    with open(USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(users, f, ensure_ascii=False, indent=4)
+    with open(USERS_FILE, "w", encoding="utf-8") as f: json.dump(users, f, ensure_ascii=False, indent=4)
 
 def load_sales():
     if os.path.exists(SALES_FILE):
-        try:
-            with open(SALES_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            pass
+        with open(SALES_FILE, "r", encoding="utf-8") as f: return json.load(f)
     return []
 
 def save_sales(sales):
-    with open(SALES_FILE, "w", encoding="utf-8") as f:
-        json.dump(sales, f, ensure_ascii=False, indent=4)
+    with open(SALES_FILE, "w", encoding="utf-8") as f: json.dump(sales, f, ensure_ascii=False, indent=4)
 
-if "users_db" not in st.session_state:
-    st.session_state.users_db = load_users()
-if "sales_data" not in st.session_state:
-    st.session_state.sales_data = load_sales()
-if "current_page" not in st.session_state:
-    st.session_state.current_page = "LandingPage"
-if "current_employee" not in st.session_state:
-    st.session_state.current_employee = ""
-if "temp_data" not in st.session_state:
-    st.session_state.temp_data = {}
+if "users_db" not in st.session_state: st.session_state.users_db = load_users()
+if "sales_data" not in st.session_state: st.session_state.sales_data = load_sales()
+if "current_page" not in st.session_state: st.session_state.current_page = "LandingPage"
+if "current_user" not in st.session_state: st.session_state.current_user = ""
+if "temp_data" not in st.session_state: st.session_state.temp_data = {}
 
 def navigate_to(page_name):
     st.session_state.current_page = page_name
     st.rerun()
 
-# ----------------- Landing Page -----------------
+# Helper for calculation CR
+def calculate_cr(sold, total):
+    return f"{(sold / total * 100):.1f}%" if total > 0 else "0.0%"
+
+# --- LANDING PAGE ---
 if st.session_state.current_page == "LandingPage":
     st.title("Enterprise Portal")
-    st.write("---")
-    
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Manager Login", use_container_width=True):
-            navigate_to("ManagerLoginPanel")
+        if st.button("Manager Login", use_container_width=True): navigate_to("ManagerLoginPanel")
     with col2:
-        if st.button("Employee Login", use_container_width=True):
-            navigate_to("EmployeeLoginPanel")
-            
-    st.write("---")
-    
-    col_text, col_btn = st.columns([1, 3])
-    with col_text:
-        st.markdown("<p class='signup-text'>New employee?</p>", unsafe_allow_html=True)
-    with col_btn:
-        if st.button("Sign up", use_container_width=False):
-            navigate_to("SignupPanel")
+        if st.button("Employee Login", use_container_width=True): navigate_to("EmployeeLoginPanel")
+    if st.button("Sign up as Employee", use_container_width=True): navigate_to("SignupPanel")
 
-# ----------------- Manager Login Panel -----------------
-elif st.session_state.current_page == "ManagerLoginPanel":
-    st.title("Manager Authentication")
-    
-    user = st.text_input("Username")
-    passw = st.text_input("Password", type="password")
-    
-    st.write("---")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Back", use_container_width=True):
-            navigate_to("LandingPage")
-    with col2:
-        if st.button("Login", use_container_width=True):
-            if not user or not passw:
-                st.error("Please enter both Username and Password.")
-            else:
-                user_data = st.session_state.users_db.get(user)
-                if user_data and tuple(user_data[:2]) == (passw, "Manager"):
-                    st.success("Login Successful!")
-                    navigate_to("ManagerDashboard")
-                else:
-                    st.error("Invalid Manager credentials.")
-
-# ----------------- Employee Login Panel -----------------
-elif st.session_state.current_page == "EmployeeLoginPanel":
-    st.title("Employee Authentication")
-    
-    user = st.text_input("Username")
-    passw = st.text_input("Password", type="password")
-    
-    st.write("---")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Back", use_container_width=True):
-            navigate_to("LandingPage")
-    with col2:
-        if st.button("Login", use_container_width=True):
-            if not user or not passw:
-                st.error("Please enter both Username and Password.")
-            elif user in st.session_state.users_db:
-                user_info = st.session_state.users_db[user]
-                saved_p = user_info[0]
-                role = user_info[1]
-                if saved_p == passw and role == "Employee":
-                    st.session_state.current_employee = user
-                    st.success("Login Successful!")
-                    navigate_to("EmployeeDashboard")
-                else:
-                    st.error("Wrong password or invalid account type.")
-            else:
-                st.error("Username does not exist. Please sign up first.")
-
-# ----------------- Signup Panel -----------------
+# --- SIGNUP PANEL ---
 elif st.session_state.current_page == "SignupPanel":
     st.title("New Employee Registration")
+    u = st.text_input("Choose Username")
+    p = st.text_input("Choose Password", type="password")
+    fn = st.text_input("First Name")
+    ln = st.text_input("Last Name")
+    team = st.selectbox("Select Team", ["انجمن نخبگان ایده پرداز", "کانون توسعه سرمایه", "کافه موفقیت", "ایده پردازان نوین", "فارمارک", "مستقل IT", "نسل آینده ساز گیشا"])
+    if st.button("Register"):
+        if u and p and fn and ln:
+            st.session_state.users_db[u] = [p, "Employee", {"first_name": fn, "last_name": ln, "team": team}]
+            save_users(st.session_state.users_db)
+            st.success("Registered successfully!")
+            navigate_to("LandingPage")
+        else:
+            st.error("Please fill all required fields.")
+
+# --- LOGIN PANELS ---
+elif st.session_state.current_page in ["ManagerLoginPanel", "EmployeeLoginPanel"]:
+    role_target = "Manager" if st.session_state.current_page == "ManagerLoginPanel" else "Employee"
+    st.title(f"{role_target} Authentication")
+    u = st.text_input("Username")
+    p = st.text_input("Password", type="password")
+    if st.button("Login"):
+        user_data = st.session_state.users_db.get(u)
+        if user_data and user_data[0] == p and user_data[1] == role_target:
+            st.session_state.current_user = u
+            navigate_to(f"{role_target}Dashboard")
+        else:
+            st.error("Invalid Credentials.")
+    if st.button("Back"): navigate_to("LandingPage")
+
+# --- MANAGER DASHBOARD ---
+elif st.session_state.current_page == "ManagerDashboard":
+    st.title(f"Manager Dashboard - Welcome {st.session_state.current_user}")
     
-    user = st.text_input("Choose Username")
-    passw = st.text_input("Choose Password", type="password")
-    first_name = st.text_input("First Name")
-    last_name = st.text_input("Last Name")
-    email = st.text_input("Email Address")
-    phone = st.text_input("Phone Number")
+    # Manager Profile & Password Settings
+    with st.expander("Security & Account Settings"):
+        new_u = st.text_input("Change Username", value=st.session_state.current_user)
+        new_p = st.text_input("New Password", type="password")
+        if st.button("Update Manager Account"):
+            if new_u and new_p:
+                old_data = st.session_state.users_db.pop(st.session_state.current_user)
+                st.session_state.users_db[new_u] = [new_p, "Manager", old_data[2]]
+                save_users(st.session_state.users_db)
+                st.session_state.current_user = new_u
+                st.success("Account updated successfully!")
+
+    if st.button("Logout"): navigate_to("LandingPage")
     
-    team_options = [
-        "انجمن نخبگان ایده پرداز",
-        "کانون توسعه سرمایه",
-        "کافه موفقیت",
-        "ایده پردازان نوین",
-        "فارمارک",
-        "مستقل IT",
-        "نسل آینده ساز گیشا"
-    ]
-    team_name = st.selectbox("Select Team", options=team_options)
+    df = pd.DataFrame(st.session_state.sales_data) if st.session_state.sales_data else pd.DataFrame()
     
     st.write("---")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Back", use_container_width=True):
-            navigate_to("LandingPage")
-    with col2:
-        if st.button("Create Account", use_container_width=True):
-            if not user or not passw or not first_name or not last_name or not email or not phone:
-                st.error("Please fill out all fields.")
-            elif user in st.session_state.users_db:
-                st.error("Username is already taken.")
-            else:
-                st.session_state.users_db[user] = [
-                    passw, 
-                    "Employee", 
-                    {"first_name": first_name, "last_name": last_name, "email": email, "phone": phone, "team": team_name}
-                ]
-                save_users(st.session_state.users_db)
-                st.session_state.current_employee = user
-                st.success("Account created successfully!")
-                navigate_to("EmployeeDashboard")
-
-# ----------------- Manager Dashboard -----------------
-elif st.session_state.current_page == "ManagerDashboard":
-    st.title("Manager Dashboard")
-    
-    col_header, col_logout = st.columns([3, 1])
-    with col_logout:
-        if st.button("Logout", use_container_width=True):
-            navigate_to("LandingPage")
-            
-    employees = [u for u, data in st.session_state.users_db.items() if data[1] == "Employee"]
-    
-    if not employees:
-        st.info("No employees registered yet.")
+    st.subheader("Monthly Team & Employee Portfolio Performance")
+    if not df.empty:
+        df['Month'] = df['ShamsiDate'].apply(lambda x: x.split('/')[1] if len(x.split('/'))>1 else '00')
+        df['Year'] = df['ShamsiDate'].apply(lambda x: x.split('/')[0] if len(x.split('/'))>1 else '00')
+        
+        # Performance calculation per Employee
+        st.markdown("#### Performance by Employee & Team")
+        emp_perf = df.groupby(['Employee', 'Year', 'Month']).agg({'PR': 'sum', 'Investment': 'sum', 'Status': lambda x: (x == 'Sold').sum()}).reset_index()
+        st.dataframe(emp_perf, use_container_width=True)
     else:
-        with col_header:
-            selected_emp = st.selectbox("Select Employee", options=["All Employees"] + employees)
-            
-        if selected_emp == "All Employees":
-            emp_records = st.session_state.sales_data
-        else:
-            emp_records = [r for r in st.session_state.sales_data if r["Employee"] == selected_emp]
-        
-        st.subheader("Daily Performance Summary")
-        if emp_records:
-            df_all = pd.DataFrame(emp_records)
-            summary_data = []
-            for date_val, group in df_all.groupby("ShamsiDate"):
-                total_presented = len(group)
-                total_sold = len(group[group["Status"] == "Sold"])
-                summary_data.append({
-                    "Date": date_val,
-                    "Total Presented": total_presented,
-                    "Total Sold": total_sold
-                })
-            summary_df = pd.DataFrame(summary_data)
-            st.dataframe(summary_df, use_container_width=True, hide_index=True)
-        else:
-            st.info("No data available for daily summary.")
-            
-        st.write("---")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("Detailed Sales List")
-            if emp_records:
-                df_details = pd.DataFrame(emp_records)
-                cols_to_show = ["ShamsiDate", "Employee", "Product", "PR", "Status", "Age", "Gender", "MaritalStatus", "Occupation"]
-                existing_cols = [c for c in cols_to_show if c in df_details.columns]
-                st.dataframe(df_details[existing_cols], use_container_width=True, hide_index=True)
-            else:
-                st.write("No sales records found.")
-                
-        with col2:
-            st.subheader("Conversion Rate (CR) Trend")
-            if emp_records:
-                days_data = {}
-                for r in emp_records:
-                    try:
-                        day = int(r["ShamsiDate"].split("/")[2])
-                        if day not in days_data:
-                            days_data[day] = []
-                        days_data[day].append(r["Status"])
-                    except:
-                        continue
-                        
-                sorted_days = sorted(days_data.keys())
-                cr_values = []
-                
-                for d in sorted_days:
-                    cumulative_statuses = []
-                    for cd in sorted_days:
-                        if cd <= d:
-                            cumulative_statuses.extend(days_data[cd])
-                    sold_count = cumulative_statuses.count("Sold")
-                    lead_count = cumulative_statuses.count("Lead")
-                    total = sold_count + lead_count
-                    cr_values.append((sold_count / total * 100) if total > 0 else 0.0)
-                
-                if sorted_days:
-                    chart_df = pd.DataFrame({
-                        "Day": [str(d) for d in sorted_days],
-                        "CR %": cr_values
-                    }).set_index("Day")
-                    st.line_chart(chart_df)
-            else:
-                st.write("No trend data available.")
+        st.info("No records recorded yet.")
 
-# ----------------- Employee Dashboard -----------------
-elif st.session_state.current_page == "EmployeeDashboard":
-    # Removed the decorative stars from the header
-    st.markdown(f"<h1>Welcome, Dear <i>{st.session_state.current_employee}</i>!</h1>", unsafe_allow_html=True)
-    
-    col_logout = st.columns([3, 1])[1]
-    if col_logout.button("Logout", use_container_width=True):
-        st.session_state.current_employee = ""
-        navigate_to("LandingPage")
+    # Company Wide Global CR Metrics
+    st.subheader("Global Company CR Analytics")
+    if not df.empty:
+        total_presents = len(df)
+        total_solds = (df['Status'] == 'Sold').sum()
+        st.metric("Total Company CR (All Groups Combined)", calculate_cr(total_solds, total_presents))
+
+# --- EMPLOYEE DASHBOARD & NAVIGATED VIEWS ---
+elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "CustomersSold", "VisitorsLeads", "MyPortfolio", "ProfileSettings"]:
+    # Sidebar navigation for employees
+    with st.sidebar:
+        st.markdown(f"### Menu Navigation")
+        if st.button("📋 Submit New Presentation", use_container_width=True): navigate_to("EmployeeDashboard")
+        if st.button("👥 My Present List", use_container_width=True): navigate_to("MyPresentList")
+        if st.button("💰 Customers (Sold)", use_container_width=True): navigate_to("CustomersSold")
+        if st.button("🚶 Visitors (Leads)", use_container_width=True): navigate_to("VisitorsLeads")
+        if st.button("📊 My Portfolio & CR", use_container_width=True): navigate_to("MyPortfolio")
+        if st.button("⚙️ Profile Settings", use_container_width=True): navigate_to("ProfileSettings")
+        st.write("---")
+        if st.button("🚪 Logout", use_container_width=True): navigate_to("LandingPage")
+
+    df_all = pd.DataFrame(st.session_state.sales_data) if st.session_state.sales_data else pd.DataFrame()
+    df_user = df_all[df_all['Employee'] == st.session_state.current_user] if not df_all.empty else pd.DataFrame()
+
+    # Dynamic view switching based on state
+    if st.session_state.current_page == "EmployeeDashboard":
+        st.markdown(f"<h1>Welcome, Dear <i>{st.session_state.current_user}</i>!</h1>", unsafe_allow_html=True)
+        st.subheader("Submit Presentation/Lead Details")
         
-    st.subheader("Submit Sale/Lead Details")
-    
-    col_y, col_m, col_d = st.columns(3)
-    
-    # Year Options Setup
-    year_options = ["1405", "1406", "1407", "1408"]
-    default_year_idx = year_options.index(sh_y_now) if sh_y_now in year_options else 0
-    year = col_y.selectbox("Year", year_options, index=default_year_idx)
-    
-    # Month Options Setup
-    month_options = [str(i) for i in range(1, 13)]
-    default_month_idx = month_options.index(sh_m_now) if sh_m_now in month_options else 0
-    month = col_m.selectbox("Month", month_options, index=default_month_idx)
-    
-    # Day Options Setup
-    day_options = [str(i) for i in range(1, 32)]
-    default_day_idx = day_options.index(sh_d_now) if sh_d_now in day_options else 0
-    day = col_d.selectbox("Day", day_options, index=default_day_idx)
-    
-    product = st.selectbox("Product", ["Simazar", "Andokhte dar", "Omid", "Finora/ Zarnova"])
-    is_sale_successful = st.toggle("Submit Successful Sale", value=False)
-    
-    invest_val = 0.0
-    if is_sale_successful:
-        col_inv, col_unit = st.columns([5, 1])
-        invest_val = col_inv.number_input("Investment Amount", min_value=0.0, step=1000.0, format="%.2f")
-        col_unit.markdown("<h4 style='margin-top: 28px;'>Rial</h4>", unsafe_allow_html=True)
+        col_y, col_m, col_d = st.columns(3)
+        year = col_y.selectbox("Year", ["1405", "1406", "1407", "1408"], index=0)
+        month = col_m.selectbox("Month", [f"{i:02d}" for i in range(1, 13)], index=int(sh_m_now)-1)
+        day = col_d.selectbox("Day", [f"{i:02d}" for i in range(1, 32)], index=int(sh_d_now)-1)
         
-    if st.button("Consumer Data", type="primary", use_container_width=True):
-        status = "Sold" if is_sale_successful else "Lead"
-        if is_sale_successful and invest_val <= 0:
-            st.error("Please enter a valid investment amount.")
-        else:
-            shamsi_date = f"{year}/{int(month):02d}/{int(day):02d}"
+        product = st.selectbox("Product", ["Simazar", "Andokhte dar", "Omid", "Finora/ Zarnova"])
+        is_sale_successful = st.toggle("Submit Successful Sale", value=False)
+        
+        invest_val = 0
+        if is_sale_successful:
+            invest_str = st.text_input("Investment Amount (Rial)", value="0")
+            # Format inputs gracefully with thousands separators
+            cleaned_invest = invest_str.replace(",", "")
+            if cleaned_invest.isdigit():
+                invest_val = int(cleaned_invest)
+                st.caption(f"Formatted Value: {invest_val:,} Rial")
+            else:
+                st.error("Please enter numbers only.")
+
+        if st.button("Proceed to Consumer Data", type="primary", use_container_width=True):
+            shamsi_date = f"{year}/{month}/{day}"
             st.session_state.temp_data = {
                 "ShamsiDate": shamsi_date,
-                "Employee": st.session_state.current_employee,
+                "Employee": st.session_state.current_user,
                 "Product": product,
                 "Investment": invest_val,
-                "Status": status
+                "Status": "Sold" if is_sale_successful else "Lead"
             }
             navigate_to("ConsumerData")
 
-# ----------------- Consumer Data -----------------
+    elif st.session_state.current_page == "MyPresentList":
+        st.title("My Present List (All Presented Persons)")
+        st.dataframe(df_user, use_container_width=True)
+
+    elif st.session_state.current_page == "CustomersSold":
+        st.title("My Customers (Successful Transactions)")
+        st.dataframe(df_user[df_user['Status'] == 'Sold'] if not df_user.empty else pd.DataFrame(), use_container_width=True)
+
+    elif st.session_state.current_page == "VisitorsLeads":
+        st.title("Visitors (Presented but Not Purchased)")
+        st.dataframe(df_user[df_user['Status'] == 'Lead'] if not df_user.empty else pd.DataFrame(), use_container_width=True)
+
+    elif st.session_state.current_page == "MyPortfolio":
+        st.title("My Financial Portfolio & Conversion Rates")
+        if not df_user.empty:
+            # Personal dynamic CR metrics
+            total_p = len(df_user)
+            total_s = (df_user['Status'] == 'Sold').sum()
+            st.metric("My Total Conversion Rate (CR)", calculate_cr(total_s, total_p))
+            
+            # Product specific breakdown
+            st.markdown("#### CR Breakdown By Product Type")
+            for prod in df_user['Product'].unique():
+                df_p = df_user[df_user['Product'] == prod]
+                st.write(f"**{prod}**: {calculate_cr((df_p['Status']=='Sold').sum(), len(df_p))}")
+        else:
+            st.info("No data tracking profile metrics yet.")
+
+    elif st.session_state.current_page == "ProfileSettings":
+        st.title("Account Profile Settings")
+        new_username = st.text_input("Modify Username", value=st.session_state.current_user)
+        new_password = st.text_input("Modify Password", type="password")
+        if st.button("Save Profile Adjustments"):
+            if new_username and new_password:
+                user_info = st.session_state.users_db.pop(st.session_state.current_user)
+                st.session_state.users_db[new_username] = [new_password, "Employee", user_info[2]]
+                save_users(st.session_state.users_db)
+                st.session_state.current_user = new_username
+                st.success("Credentials altered successfully!")
+
+# --- CONSUMER DATA SPECIFICATION FORM ---
 elif st.session_state.current_page == "ConsumerData":
-    st.title("Enter Customer Specifications")
+    st.title("Enter Consumer Specifications")
+    st.info("Please fill out all the mandatory fields below to complete submission.")
     
     col1, col2 = st.columns(2)
     with col1:
-        age = st.number_input("Age", min_value=0, max_value=120, value=0, step=1)
+        age = st.number_input("Age", min_value=1, max_value=100, step=1, value=25)
         gender = st.radio("Gender", ["Male", "Female"], horizontal=True)
         marital_status = st.radio("Marital Status", ["Single", "Married"], horizontal=True)
-        
     with col2:
-        num_children = st.number_input("Num of children", min_value=0, max_value=20, value=0, step=1)
+        num_children = st.number_input("Number of Children (Optional)", min_value=0, max_value=15, value=0, step=1)
         smoker = st.radio("Smoker", ["Yes", "No"], horizontal=True)
-        education = st.selectbox("Education", ["Diploma", "Bachelor's degree", "Master's degree", "PhD"])
-        
-    occupation = st.text_input("Occupation")
-    cust_notes = st.text_area("Notes")
+        education = st.selectbox("Education", ["Under Diploma", "Diploma", "Bachelor's degree", "Master's degree", "PhD"])
+
+    # Comprehensive Entrepreneurial Insurance Compliant Job Classifications (Farsi)
+    occupations_list = [
+        "پزشک و کادر درمانی بالا رتبه", "کارمند اداری/شرکتی", "مهندس/مشاور فنی", 
+        "فرهنگی/استاد دانشگاه/معلم", "بازنشسته کشوری یا لشگری", "خانه دار", 
+        "شغل آزاد/اصناف مستقل", "کارگر صنعتی/امور فنی دستمزد", "دانشجو/دانش آموز", "سایر"
+    ]
+    occupation = st.selectbox("Occupation (شغل)", occupations_list)
     
-    col_btn1, col_btn2 = st.columns(2)
-    with col_btn1:
-        if st.button("Submit", use_container_width=True):
+    custom_occupation = ""
+    if occupation == "سایر":
+        custom_occupation = st.text_input("لطفاً شغل دقیق را بنویسید:")
+
+    cust_notes = st.text_area("Notes / Client Feedback")
+
+    if st.button("Complete Entry & Save", type="primary"):
+        # Explicit mandatory validations
+        final_occupation = custom_occupation if occupation == "سایر" else occupation
+        
+        if occupation == "سایر" and not custom_occupation:
+            st.error("لطفا فیلد سایر شغل را پر کنید.")
+        else:
             temp = st.session_state.temp_data
             invest = temp["Investment"]
             prod = temp["Product"]
             
-            if prod in ["Simazar", "Andokhte dar", "Omid"]:
-                pr = invest
-            elif prod in ["Finora/ Zarnova", "Finora", "Zarnova"]:
-                pr = 0.40 * invest
-            else:
-                pr = 0
+            # Calculation logic based on corporate rule weights
+            pr = invest if prod in ["Simazar", "Andokhte dar", "Omid"] else (0.40 * invest)
             
-            new_row = {
+            new_record = {
                 "ShamsiDate": temp["ShamsiDate"],
                 "Employee": temp["Employee"],
                 "Product": prod,
@@ -478,18 +317,16 @@ elif st.session_state.current_page == "ConsumerData":
                 "NumChildren": num_children,
                 "Smoker": smoker,
                 "Education": education,
-                "Occupation": occupation,
-                "CustomerNotes": cust_notes
+                "Occupation": final_occupation,
+                "Notes": cust_notes
             }
             
-            st.session_state.sales_data.append(new_row)
+            st.session_state.sales_data.append(new_record)
             save_sales(st.session_state.sales_data)
-            
-            st.toast("Data registered successfully!")
+            st.success("Successfully logged consumer transaction details!")
             st.session_state.temp_data = {}
             navigate_to("EmployeeDashboard")
-                
-    with col_btn2:
-        if st.button("Cancel", use_container_width=True):
-            st.session_state.temp_data = {}
-            navigate_to("EmployeeDashboard")
+
+    if st.button("Discard Presentation Log"):
+        st.session_state.temp_data = {}
+        navigate_to("EmployeeDashboard")
