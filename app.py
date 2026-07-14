@@ -5,58 +5,69 @@ import os
 
 st.set_page_config(page_title="Enterprise Manager & Employee Portal", layout="centered")
 
-# --- Custom Theme styling inspired by the golden/neon oil theme ---
+# --- Elegant, Dark Blue Gold/Neon Gradient Theme ---
 st.markdown("""
     <style>
+        /* Base background with a subtle, rich gradient fading from deep dark blue to slate */
         .stApp {
-            background-color: #090e17;
+            background: linear-gradient(180deg, #070b12 0%, #101726 100%);
             color: #e2e8f0;
         }
         
+        /* Headers and labels styling with a smooth neon golden glow */
         h1, h2, h3, h4, h5, h6, label, p {
-            font-family: 'Tahoma', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         h1, h2, h3, h4, h5, h6, label {
-            color: #ffd700 !important;
-            text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+            color: #f1c40f !important;
+            text-shadow: 0 0 12px rgba(241, 196, 15, 0.25);
+            font-weight: 600 !important;
         }
         
+        /* Form inputs styled to seamlessly blend with the dark background */
         div[data-baseweb="input"] {
-            background-color: #111a2e !important;
-            border: 1px solid #ffd700 !important;
+            background-color: #0c1220 !important;
+            border: 1px solid rgba(241, 196, 15, 0.4) !important;
             border-radius: 8px !important;
+            transition: all 0.3s ease-in-out !important;
         }
+        
+        div[data-baseweb="input"]:focus-within {
+            border-color: #00e5ff !important;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.35) !important;
+        }
+        
         input {
             color: #ffffff !important;
         }
         
+        /* Smooth, fading gradient buttons */
         .stButton>button {
-            background: linear-gradient(135deg, #ffb300 0%, #ff8f00 100%) !important;
-            color: #090e17 !important;
-            font-weight: bold !important;
+            background: linear-gradient(135deg, #e6b800 0%, #c19600 100%) !important;
+            color: #070b12 !important;
+            font-weight: 600 !important;
             border: none !important;
             border-radius: 8px !important;
-            box-shadow: 0 4px 15px rgba(255, 179, 0, 0.3) !important;
-            transition: all 0.3s ease !important;
+            box-shadow: 0 4px 12px rgba(193, 150, 0, 0.2) !important;
+            transition: all 0.4s ease !important;
         }
+        
         .stButton>button:hover {
-            background: linear-gradient(135deg, #00e5ff 0%, #00a3ff 100%) !important;
+            background: linear-gradient(135deg, #00d9f5 0%, #0077b3 100%) !important;
             color: #ffffff !important;
-            box-shadow: 0 6px 20px rgba(0, 229, 255, 0.6) !important;
-            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0, 217, 245, 0.4) !important;
+            transform: translateY(-1px);
         }
         
         hr {
-            border-color: rgba(255, 215, 0, 0.2) !important;
+            border-color: rgba(241, 196, 15, 0.15) !important;
         }
         
-        /* Helper to vertically center text next to buttons */
         .signup-text {
-            color: #ffd700;
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-top: 6px;
+            color: rgba(241, 196, 15, 0.8);
+            font-size: 1.1rem;
+            margin-top: 8px;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -98,7 +109,7 @@ if "users_db" not in st.session_state:
 if "sales_data" not in st.session_state:
     st.session_state.sales_data = load_sales()
 if "current_page" not in st.session_state:
-    st.session_state.current_page = "RoleSelection"
+    st.session_state.current_page = "LandingPage"
 if "current_employee" not in st.session_state:
     st.session_state.current_employee = ""
 if "temp_data" not in st.session_state:
@@ -108,21 +119,42 @@ def navigate_to(page_name):
     st.session_state.current_page = page_name
     st.rerun()
 
-# ----------------- Single Authentication Portal -----------------
-if st.session_state.current_page == "RoleSelection":
+# ----------------- Landing Page -----------------
+if st.session_state.current_page == "LandingPage":
     st.title("Enterprise Portal")
-    
-    col_u, col_p = st.columns(2)
-    with col_u:
-        user = st.text_input("Username")
-    with col_p:
-        passw = st.text_input("Password", type="password")
-        
     st.write("---")
     
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Manager Login", use_container_width=True):
+            navigate_to("ManagerLoginPanel")
+    with col2:
+        if st.button("Employee Login", use_container_width=True):
+            navigate_to("EmployeeLoginPanel")
+            
+    st.write("---")
+    
+    col_text, col_btn = st.columns([1, 3])
+    with col_text:
+        st.markdown("<p class='signup-text'>New employee?</p>", unsafe_allow_html=True)
+    with col_btn:
+        if st.button("Sign up", use_container_width=False):
+            navigate_to("SignupPanel")
+
+# ----------------- Manager Login Panel -----------------
+elif st.session_state.current_page == "ManagerLoginPanel":
+    st.title("Manager Authentication")
+    
+    user = st.text_input("Username")
+    passw = st.text_input("Password", type="password")
+    
+    st.write("---")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Back", use_container_width=True):
+            navigate_to("LandingPage")
+    with col2:
+        if st.button("Login", use_container_width=True):
             if not user or not passw:
                 st.error("Please enter both Username and Password.")
             else:
@@ -132,9 +164,21 @@ if st.session_state.current_page == "RoleSelection":
                     navigate_to("ManagerDashboard")
                 else:
                     st.error("Invalid Manager credentials.")
-                    
+
+# ----------------- Employee Login Panel -----------------
+elif st.session_state.current_page == "EmployeeLoginPanel":
+    st.title("Employee Authentication")
+    
+    user = st.text_input("Username")
+    passw = st.text_input("Password", type="password")
+    
+    st.write("---")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Back", use_container_width=True):
+            navigate_to("LandingPage")
     with col2:
-        if st.button("Employee Login", use_container_width=True):
+        if st.button("Login", use_container_width=True):
             if not user or not passw:
                 st.error("Please enter both Username and Password.")
             elif user in st.session_state.users_db:
@@ -146,20 +190,26 @@ if st.session_state.current_page == "RoleSelection":
                 else:
                     st.error("Wrong password or invalid account type.")
             else:
-                st.error("Account not found. Use Sign up below if you are new.")
+                st.error("Username does not exist. Please sign up first.")
 
-    st.write("---")
+# ----------------- Signup Panel -----------------
+elif st.session_state.current_page == "SignupPanel":
+    st.title("New Employee Registration")
     
-    # Registration option row
-    col_text, col_btn = st.columns([1, 3])
-    with col_text:
-        st.markdown("<p class='signup-text'>New employee?</p>", unsafe_allow_html=True)
-    with col_btn:
-        if st.button("Sign up", use_container_width=False):
+    user = st.text_input("Choose Username")
+    passw = st.text_input("Choose Password", type="password")
+    
+    st.write("---")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Back", use_container_width=True):
+            navigate_to("LandingPage")
+    with col2:
+        if st.button("Create Account", use_container_width=True):
             if not user or not passw:
-                st.error("Please provide a Username and Password to create a new account.")
+                st.error("Please fill out both fields.")
             elif user in st.session_state.users_db:
-                st.error("Username already exists. Please choose a different one.")
+                st.error("Username is already taken.")
             else:
                 st.session_state.users_db[user] = [passw, "Employee"]
                 save_users(st.session_state.users_db)
@@ -174,7 +224,7 @@ elif st.session_state.current_page == "ManagerDashboard":
     col_header, col_logout = st.columns([3, 1])
     with col_logout:
         if st.button("Logout", use_container_width=True):
-            navigate_to("RoleSelection")
+            navigate_to("LandingPage")
             
     employees = [u for u, data in st.session_state.users_db.items() if data[1] == "Employee"]
     
@@ -261,7 +311,7 @@ elif st.session_state.current_page == "EmployeeDashboard":
     col_logout = st.columns([3, 1])[1]
     if col_logout.button("Logout", use_container_width=True):
         st.session_state.current_employee = ""
-        navigate_to("RoleSelection")
+        navigate_to("LandingPage")
         
     st.subheader("Submit Sale/Lead Details")
     
