@@ -5,7 +5,7 @@ import os
 
 st.set_page_config(page_title="Enterprise Manager & Employee Portal", layout="centered")
 
-# --- Elegant, Dark Blue Gold/Neon Gradient Theme ---
+# --- Elegant, Dark Blue Gold/Neon Gradient Theme with Fixed Input Colors ---
 st.markdown("""
     <style>
         /* Base background with a subtle, rich gradient fading from deep dark blue to slate */
@@ -38,7 +38,28 @@ st.markdown("""
             box-shadow: 0 0 10px rgba(0, 229, 255, 0.35) !important;
         }
         
+        /* Forces input text and background to stay dark and readable */
         input {
+            background-color: #0c1220 !important;
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+
+        /* Prevent browser autofill from turning the background white */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px #0c1220 inset !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+        
+        /* Selectbox specific dropdown styling fixes */
+        div[data-baseweb="select"] {
+            background-color: #0c1220 !important;
+        }
+        
+        div[data-baseweb="select"] * {
             color: #ffffff !important;
         }
         
