@@ -56,7 +56,9 @@ st.markdown("""
 
 USERS_FILE = "users_db.json"
 SALES_FILE = "sales_data.json"
-TEAMS_LIST = ["Idea Generators Elite", "Capital Development", "Success Cafe", "Modern Thinkers", "Pharmark", "Independent IT", "Gisha Future Makers"]
+
+# 7 Teams in Persian
+TEAMS_LIST = ["انجمن نخبگان ایده پرداز", "کانون توسعه سرمایه", "کافه موفقیت", "ایده پردازان نوین", "فارمارک", "مستقل IT", "نسل آینده ساز گیشا"]
 
 def load_users():
     if os.path.exists(USERS_FILE):
@@ -562,24 +564,25 @@ elif st.session_state.current_page == "ConsumerData":
         smoker = st.radio("Smoker", ["Yes", "No"], horizontal=True)
         education = st.selectbox("Education", ["Under Diploma", "Diploma", "Bachelor's degree", "Master's degree", "PhD"])
 
+    # Occupations list in Persian
     occupations_list = [
-        "Medical Doctor / Senior Healthcare Staff", "Administrative / Corporate Employee", "Engineer / Technical Consultant", 
-        "Academic / University Professor / Teacher", "Government or Military Retired", "Homemaker", 
-        "Self-Employed / Independent Business owner", "Industrial Worker / Technician", "Student", "Other"
+        "پزشک و کادر درمانی بالا رتبه", "کارمند اداری/شرکتی", "مهندس/مشاور فنی", 
+        "فرهنگی/استاد دانشگاه/معلم", "بازنشسته کشوری یا لشگری", "خانه دار", 
+        "شغل آزاد/اصناف مستقل", "کارگر صنعتی/امور فنی دستمزد", "دانشجو/دانش آموز", "سایر"
     ]
     occupation = st.selectbox("Occupation", occupations_list)
     
     custom_occupation = ""
-    if occupation == "Other":
-        custom_occupation = st.text_input("Please specify your exact occupation:")
+    if occupation == "سایر":
+        custom_occupation = st.text_input("لطفاً شغل دقیق را بنویسید:")
 
     cust_notes = st.text_area("Notes / Client Feedback")
 
     if st.button("Complete Entry & Save", type="primary"):
-        final_occupation = custom_occupation if occupation == "Other" else occupation
+        final_occupation = custom_occupation if occupation == "سایر" else occupation
         
-        if occupation == "Other" and not custom_occupation:
-            st.error("Please fill out the custom occupation description field.")
+        if occupation == "سایر" and not custom_occupation:
+            st.error("لطفا فیلد سایر شغل را پر کنید.")
         else:
             temp = st.session_state.temp_data
             invest = temp["Investment"]
