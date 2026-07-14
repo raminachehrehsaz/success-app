@@ -2,6 +2,52 @@ import streamlit as st
 import pandas as pd
 import json
 import os
+from datetime import datetime
+
+# Convert Gregorian date to Shamsi (Simplified Persian Calendar converter for default selection)
+def get_current_shamsi():
+    # 2026 is a leap year contextually. Let's calculate a reliable simplified mapping or fallback.
+    today = datetime.now()
+    gy = today.year
+    gm = today.month
+    gd = today.day
+
+    g_days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    if (gy % 4 == 0 and gy % 100 != 0) or (gy % 400 == 0):
+        g_days_in_month[1] = 29
+
+    # Calculate days from start of Gregorian year
+    g_day_no = sum(g_days_in_month[:gm - 1]) + gd
+
+    # Basic Shamsi conversion formula
+    if g_day_no > 79:
+        sh_day_no = g_day_no - 79
+        sh_year = gy - 621
+        if sh_day_no <= 186:
+            sh_month = (sh_day_no - 1) // 31 + 1
+            sh_day = (sh_day_no - 1) % 31 + 1
+        else:
+            sh_day_no_2 = sh_day_no - 186
+            sh_month = (sh_day_no_2 - 1) // 30 + 7
+            sh_day = (sh_day_no_2 - 1) % 30 + 1
+    else:
+        # Before Vernal Equinox
+        sh_year = gy - 622
+        # Check leap year for previous shamsi year
+        is_prev_sh_leap = ((sh_year % 33) in [1, 5, 9, 13, 17, 22, 26, 30])
+        prev_year_days = 366 if is_prev_sh_leap else 365
+        sh_day_no = prev_year_days - (79 - g_day_no)
+        if sh_day_no <= 186:
+            sh_month = (sh_day_no - 1) // 31 + 1
+            sh_day = (sh_day_no - 1) % 31 + 1
+        else:
+            sh_day_no_2 = sh_day_no - 186
+            sh_month = (sh_day_no_2 - 1) // 30 + 7
+            sh_day = (sh_day_no_2 - 1) % 30 + 1
+
+    return str(sh_year), str(sh_month), str(sh_day)
+
+sh_y_now, sh_m_now, sh_d_now = get_current_shamsi()
 
 st.set_page_config(page_title="Enterprise Manager & Employee Portal", layout="centered")
 
@@ -341,7 +387,8 @@ elif st.session_state.current_page == "ManagerDashboard":
 
 # ----------------- Employee Dashboard -----------------
 elif st.session_state.current_page == "EmployeeDashboard":
-    st.title(f"Welcome dear {st.session_state.current_employee}")
+    # Enhanced "Welcome Dear" header with formatting and emoji styling
+    st.markdown(f"<h1>✨ Welcome, Dear <i>{st.session_state.current_employee}</i>! ✨</h1>", unsafe_allow_html=True)
     
     col_logout = st.columns([3, 1])[1]
     if col_logout.button("Logout", use_container_width=True):
@@ -350,11 +397,23 @@ elif st.session_state.current_page == "EmployeeDashboard":
         
     st.subheader("Submit Sale/Lead Details")
     
-    st.write("Date (Shamsi)")
+    # Date selection layout (The "(Shamsi)" label has been removed as requested)
     col_y, col_m, col_d = st.columns(3)
-    year = col_y.selectbox("Year", ["1405", "1406", "1407", "1408"], index=0)
-    month = col_m.selectbox("Month", [str(i) for i in range(1, 13)], index=0)
-    day = col_d.selectbox("Day", [str(i) for i in range(1, 32)], index=0)
+    
+    # Year Options Setup
+    year_options = ["1405", "1406", "1407", "1408"]
+    default_year_idx = year_options.index(sh_y_now) if sh_y_now in year_options else 0
+    year = col_y.selectbox("Year", year_options, index=default_year_idx)
+    
+    # Month Options Setup
+    month_options = [str(i) for i in range(1, 13)]
+    default_month_idx = month_options.index(sh_m_now) if sh_m_now in month_options else 0
+    month = col_m.selectbox("Month", month_options, index=default_month_idx)
+    
+    # Day Options Setup
+    day_options = [str(i) for i in range(1, 32)]
+    default_day_idx = day_options.index(sh_d_now) if sh_d_now in day_options else 0
+    day = col_d.selectbox("Day", day_options, index=default_day_idx)
     
     product = st.selectbox("Product", ["Simazar", "Andokhte dar", "Omid", "Finora/ Zarnova"])
     is_sale_successful = st.toggle("Submit Successful Sale", value=False)
