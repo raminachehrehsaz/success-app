@@ -50,6 +50,7 @@ st.markdown("""
         .stButton>button { background: linear-gradient(135deg, #e6b800 0%, #c19600 100%) !important; color: #070b12 !important; font-weight: 600 !important; border-radius: 8px !important; }
         .stButton>button:hover { background: linear-gradient(135deg, #00d9f5 0%, #0077b3 100%) !important; color: #ffffff !important; }
         [data-testid="stSidebar"] { background-color: #090e18 !important; border-left: 1px solid rgba(241, 196, 15, 0.2); }
+        .followup-box { background-color: #1a2436; border-left: 3px solid #f1c40f; padding: 6px 12px; margin: 4px 0; border-radius: 4px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -67,7 +68,13 @@ def save_users(users):
 
 def load_sales():
     if os.path.exists(SALES_FILE):
-        with open(SALES_FILE, "r", encoding="utf-8") as f: return json.load(f)
+        with open(SALES_FILE, "r", encoding="utf-8") as f: 
+            data = json.load(f)
+            # Ensure follow_ups structure exists
+            for item in data:
+                if "follow_ups" not in item:
+                    item["follow_ups"] = []
+            return data
     return []
 
 def save_sales(sales):
@@ -210,15 +217,20 @@ elif st.session_state.current_page == "ManagerDashboard":
 
         if not df_all.empty:
             if member == "All Team (کل تیم)":
-                filtered_df = df_all[df_all['Employee'].isin(team_members_list)]
+                filtered_df = df_all[df_all['Employee'].isin(team_members_list)].copy()
             else:
-                filtered_df = df_all[df_all['Employee'] == member]
+                filtered_df = df_all[df_all['Employee'] == member].copy()
         else:
             filtered_df = pd.DataFrame()
 
         if filtered_df.empty:
             st.warning("No recorded sales/presentations exist for the selected choice yet.")
         else:
+            # Generate Year and Month helper columns
+            filtered_df['Month'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[1] if len(x.split('/')) > 1 else '00')
+            filtered_df['Year'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[0] if len(x.split('/')) > 1 else '00')
+            
+            # 1) CR per Product
             st.markdown("### 1) CR per Product Type (نرخ تبدیل به تفکیک هر محصول)")
             products = ["Simazar", "Andokhte dar", "Omid", "Finora/ Zarnova"]
             cols_cr = st.columns(4)
@@ -228,11 +240,13 @@ elif st.session_state.current_page == "ManagerDashboard":
                 p_sold = (prod_df['Status'] == 'Sold').sum()
                 cols_cr[idx].metric(f"{prod} CR", calculate_cr(p_sold, p_total), f"Sold: {p_sold} / Total: {p_total}")
 
+            # 2) CR کلی
             st.markdown("### 2) Global Conversion Rate (نرخ تبدیل کلی)")
             total_presents = len(filtered_df)
             total_solds = (filtered_df['Status'] == 'Sold').sum()
             st.metric(label="Overall CR (کل ارائه‌ها)", value=calculate_cr(total_solds, total_presents))
 
+            # 3) Sales Table
             st.markdown("### 3) Presentation & Sales Ledger (جدول ارائه‌ها و فروش)")
             display_df = filtered_df.copy()
             display_df['Investment'] = display_df['Investment'].apply(lambda x: f"{int(x):,} Rial" if pd.notnull(x) else "0")
@@ -250,14 +264,43 @@ elif st.session_state.current_page == "ManagerDashboard":
             valid_cols = [c for c in existing_cols if c in display_df.columns]
             st.dataframe(display_df[valid_cols], use_container_width=True, hide_index=True)
 
-            st.markdown("### 4) Monthly Cumulative Portfolio (جمع پورتفوی ماهانه)")
-            filtered_df['Month'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[1] if len(x.split('/')) > 1 else '00')
-            filtered_df['Year'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[0] if len(x.split('/')) > 1 else '00')
+            # 4) Monthly Portfolio & CR Aggregation (برای ماه‌های قبل و جاری)
+            st.markdown("### 4) Monthly Cumulative Portfolio & CR Archive (عملکرد و پورتفوی ماه‌های قبل)")
             
-            monthly_pr = filtered_df.groupby(['Year', 'Month']).agg({'PR': 'sum'}).reset_index()
-            monthly_pr['Total PR (Formatted)'] = monthly_pr['PR'].apply(lambda x: f"{int(x):,} Rial")
+            unique_months = filtered_df.groupby(['Year', 'Month']).size().reset_index()[['Year', 'Month']]
             
-            st.dataframe(monthly_pr[['Year', 'Month', 'Total PR (Formatted)']], use_container_width=True, hide_index=True)
+            monthly_records = []
+            for _, row in unique_months.iterrows():
+                y, m = row['Year'], row['Month']
+                m_df = filtered_df[(filtered_df['Year'] == y) & (filtered_df['Month'] == m)]
+                
+                m_total_presents = len(m_df)
+                m_total_solds = (m_df['Status'] == 'Sold').sum()
+                m_cr = calculate_cr(m_total_solds, m_total_presents)
+                m_pr = m_df['PR'].sum()
+                
+                # Product-specific CR for this month (0% if no sales occurred but presentation did)
+                prod_cr_details = []
+                for prod in products:
+                    prod_m_df = m_df[m_df['Product'] == prod]
+                    p_total = len(prod_m_df)
+                    p_sold = (prod_m_df['Status'] == 'Sold').sum()
+                    if p_total > 0:
+                        prod_cr_details.append(f"{prod}: {calculate_cr(p_sold, p_total)}")
+                    else:
+                        prod_cr_details.append(f"{prod}: N/A")
+                
+                monthly_records.append({
+                    "سال": y,
+                    "ماه": m,
+                    "کل پرزنت‌ها": m_total_presents,
+                    "فروش موفق": m_total_solds,
+                    "نرخ تبدیل ماهانه (CR)": m_cr,
+                    "مجموع پورتفوی (PR)": f"{int(m_pr):,} Rial",
+                    "جزئیات محصولات": " | ".join(prod_cr_details)
+                })
+            
+            st.dataframe(pd.DataFrame(monthly_records), use_container_width=True, hide_index=True)
 
 # --- EMPLOYEE DASHBOARD & NAVIGATED VIEWS ---
 elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "CustomersSold", "VisitorsLeads", "MyPortfolio", "ProfileSettings"]:
@@ -304,7 +347,8 @@ elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "Cu
                 "Employee": st.session_state.current_user,
                 "Product": product,
                 "Investment": invest_val,
-                "Status": "Sold" if is_sale_successful else "Lead"
+                "Status": "Sold" if is_sale_successful else "Lead",
+                "follow_ups": []
             }
             navigate_to("ConsumerData")
 
@@ -318,7 +362,46 @@ elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "Cu
 
     elif st.session_state.current_page == "VisitorsLeads":
         st.title("Visitors (Presented but Not Purchased)")
-        st.dataframe(df_user[df_user['Status'] == 'Lead'] if not df_user.empty else pd.DataFrame(), use_container_width=True)
+        
+        # Interactive UI for writing reasons/followups for unsuccessful presentations
+        leads_exist = False
+        for idx, record in enumerate(st.session_state.sales_data):
+            if record['Employee'] == st.session_state.current_user and record['Status'] == 'Lead':
+                leads_exist = True
+                st.markdown(f"### 📍 Present: {record['Product']} ({record['ShamsiDate']})")
+                
+                # Double safety initializer
+                if "follow_ups" not in record:
+                    record["follow_ups"] = []
+                
+                # Show existing registered follow ups
+                if record["follow_ups"]:
+                    st.markdown("**ثبت شده:**")
+                    for f_idx, note in enumerate(record["follow_ups"]):
+                        st.markdown(f"<div class='followup-box'>{f_idx+1}) {note}</div>", unsafe_allow_html=True)
+                
+                # Add new follow-ups interface if less than 3
+                current_count = len(record["follow_ups"])
+                if current_count < 3:
+                    col_input, col_add = st.columns([5, 1])
+                    with col_input:
+                        new_note = st.text_input(f"توضیحات کوتاه علت عدم خرید ({current_count}/3):", key=f"note_in_{idx}")
+                    with col_add:
+                        st.markdown("<br>", unsafe_allow_html=True)
+                        if st.button("➕ ثبت", key=f"add_btn_{idx}"):
+                            if new_note.strip():
+                                record["follow_ups"].append(new_note.strip())
+                                save_sales(st.session_state.sales_data)
+                                st.success("توضیحات با موفقیت ثبت شد!")
+                                st.rerun()
+                            else:
+                                st.error("متن را وارد کنید.")
+                else:
+                    st.info("حداکثر ۳ مورد توضیح برای این پرزنت ثبت شده است.")
+                st.write("---")
+                
+        if not leads_exist:
+            st.info("No leads available.")
 
     elif st.session_state.current_page == "MyPortfolio":
         st.title("My Financial Portfolio & Conversion Rates")
@@ -328,16 +411,17 @@ elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "Cu
             st.metric("My Total Conversion Rate (CR)", calculate_cr(total_s, total_p))
             
             st.markdown("#### CR Breakdown By Product Type")
-            for prod in df_user['Product'].unique():
+            for prod in ["Simazar", "Andokhte dar", "Omid", "Finora/ Zarnova"]:
                 df_p = df_user[df_user['Product'] == prod]
-                st.write(f"**{prod}**: {calculate_cr((df_p['Status']=='Sold').sum(), len(df_p))}")
+                p_total = len(df_p)
+                p_sold = (df_p['Status'] == 'Sold').sum()
+                st.write(f"**{prod}**: {calculate_cr(p_sold, p_total)} (Presents: {p_total})")
         else:
             st.info("No data tracking profile metrics yet.")
 
     elif st.session_state.current_page == "ProfileSettings":
         st.title("Account Profile Settings")
         
-        # Load existing profile meta data safely
         current_profile_data = st.session_state.users_db[st.session_state.current_user]
         current_pwd = current_profile_data[0]
         meta = current_profile_data[2] if len(current_profile_data) > 2 and isinstance(current_profile_data[2], dict) else {}
@@ -358,17 +442,14 @@ elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "Cu
         new_em = st.text_input("Email Address", value=old_em)
         new_ph = st.text_input("Phone Number", value=old_ph)
         
-        # Team Dropdown update
         default_team_idx = TEAMS_LIST.index(old_team) if old_team in TEAMS_LIST else 0
         new_team = st.selectbox("Team Selection", TEAMS_LIST, index=default_team_idx)
 
         if st.button("Save Profile Adjustments", type="primary"):
             if new_username and new_password and new_fn and new_ln:
-                # Remove old key if username changed
                 if new_username != st.session_state.current_user:
                     st.session_state.users_db.pop(st.session_state.current_user)
                 
-                # Update database structured schema
                 st.session_state.users_db[new_username] = [
                     new_password, 
                     "Employee", 
@@ -441,7 +522,8 @@ elif st.session_state.current_page == "ConsumerData":
                 "Smoker": smoker,
                 "Education": education,
                 "Occupation": final_occupation,
-                "Notes": cust_notes
+                "Notes": cust_notes,
+                "follow_ups": []
             }
             
             st.session_state.sales_data.append(new_record)
