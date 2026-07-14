@@ -55,6 +55,7 @@ st.markdown("""
 
 USERS_FILE = "users_db.json"
 SALES_FILE = "sales_data.json"
+TEAMS_LIST = ["انجمن نخبگان ایده پرداز", "کانون توسعه سرمایه", "کافه موفقیت", "ایده پردازان نوین", "فارمارک", "مستقل IT", "نسل آینده ساز گیشا"]
 
 def load_users():
     if os.path.exists(USERS_FILE):
@@ -78,7 +79,6 @@ if "current_page" not in st.session_state: st.session_state.current_page = "Land
 if "current_user" not in st.session_state: st.session_state.current_user = ""
 if "temp_data" not in st.session_state: st.session_state.temp_data = {}
 
-# Keep track of manager step-by-step navigation
 if "manager_step" not in st.session_state: st.session_state.manager_step = "SelectTeam"
 if "selected_team" not in st.session_state: st.session_state.selected_team = ""
 if "selected_member" not in st.session_state: st.session_state.selected_member = ""
@@ -87,7 +87,6 @@ def navigate_to(page_name):
     st.session_state.current_page = page_name
     st.rerun()
 
-# Helper for calculation CR
 def calculate_cr(sold, total):
     return f"{(sold / total * 100):.1f}%" if total > 0 else "0.0%"
 
@@ -108,10 +107,12 @@ elif st.session_state.current_page == "SignupPanel":
     p = st.text_input("Choose Password", type="password")
     fn = st.text_input("First Name")
     ln = st.text_input("Last Name")
-    team = st.selectbox("Select Team", ["انجمن نخبگان ایده پرداز", "کانون توسعه سرمایه", "کافه موفقیت", "ایده پردازان نوین", "فارمارک", "مستقل IT", "نسل آینده ساز گیشا"])
+    em = st.text_input("Email Address")
+    ph = st.text_input("Phone Number")
+    team = st.selectbox("Select Team", TEAMS_LIST)
     if st.button("Register"):
         if u and p and fn and ln:
-            st.session_state.users_db[u] = [p, "Employee", {"first_name": fn, "last_name": ln, "team": team}]
+            st.session_state.users_db[u] = [p, "Employee", {"first_name": fn, "last_name": ln, "email": em, "phone": ph, "team": team}]
             save_users(st.session_state.users_db)
             st.success("Registered successfully!")
             navigate_to("LandingPage")
@@ -156,12 +157,9 @@ elif st.session_state.current_page == "ManagerDashboard":
         
     st.write("---")
 
-    # Dynamic step-by-step navigation for choosing Team ➔ Member ➔ Data
-    team_list = ["انجمن نخبگان ایده پرداز", "کانون توسعه سرمایه", "کافه موفقیت", "ایده پردازان نوین", "فارمارک", "مستقل IT", "نسل آینده ساز گیشا"]
-
     if st.session_state.manager_step == "SelectTeam":
         st.subheader("Step 1: Select Team")
-        selected_team = st.selectbox("Choose a Team", team_list)
+        selected_team = st.selectbox("Choose a Team", TEAMS_LIST)
         if st.button("Next ➔ Choose Member", type="primary"):
             st.session_state.selected_team = selected_team
             st.session_state.manager_step = "SelectMember"
@@ -170,7 +168,6 @@ elif st.session_state.current_page == "ManagerDashboard":
     elif st.session_state.manager_step == "SelectMember":
         st.subheader(f"Step 2: Select Member from Team: {st.session_state.selected_team}")
         
-        # Get all employees belonging to the selected team
         team_members = []
         for username, data in st.session_state.users_db.items():
             if len(data) > 2 and isinstance(data[2], dict):
@@ -204,10 +201,8 @@ elif st.session_state.current_page == "ManagerDashboard":
             
         st.write("---")
         
-        # Filter raw sales data based on selection
         df_all = pd.DataFrame(st.session_state.sales_data) if st.session_state.sales_data else pd.DataFrame()
         
-        # Get user list of this team to query collectively if needed
         team_members_list = []
         for u, d in st.session_state.users_db.items():
             if len(d) > 2 and isinstance(d[2], dict) and d[2].get("team") == team and d[1] == "Employee":
@@ -224,7 +219,6 @@ elif st.session_state.current_page == "ManagerDashboard":
         if filtered_df.empty:
             st.warning("No recorded sales/presentations exist for the selected choice yet.")
         else:
-            # 1) CR per Product
             st.markdown("### 1) CR per Product Type (نرخ تبدیل به تفکیک هر محصول)")
             products = ["Simazar", "Andokhte dar", "Omid", "Finora/ Zarnova"]
             cols_cr = st.columns(4)
@@ -234,15 +228,12 @@ elif st.session_state.current_page == "ManagerDashboard":
                 p_sold = (prod_df['Status'] == 'Sold').sum()
                 cols_cr[idx].metric(f"{prod} CR", calculate_cr(p_sold, p_total), f"Sold: {p_sold} / Total: {p_total}")
 
-            # 2) CR کلی
             st.markdown("### 2) Global Conversion Rate (نرخ تبدیل کلی)")
             total_presents = len(filtered_df)
             total_solds = (filtered_df['Status'] == 'Sold').sum()
             st.metric(label="Overall CR (کل ارائه‌ها)", value=calculate_cr(total_solds, total_presents))
 
-            # 3) Sales Table
             st.markdown("### 3) Presentation & Sales Ledger (جدول ارائه‌ها و فروش)")
-            # Standardizing fields for display
             display_df = filtered_df.copy()
             display_df['Investment'] = display_df['Investment'].apply(lambda x: f"{int(x):,} Rial" if pd.notnull(x) else "0")
             display_df['PR'] = display_df['PR'].apply(lambda x: f"{int(x):,} Rial" if pd.notnull(x) else "0")
@@ -259,7 +250,6 @@ elif st.session_state.current_page == "ManagerDashboard":
             valid_cols = [c for c in existing_cols if c in display_df.columns]
             st.dataframe(display_df[valid_cols], use_container_width=True, hide_index=True)
 
-            # 4) Monthly Portfolio Aggregation
             st.markdown("### 4) Monthly Cumulative Portfolio (جمع پورتفوی ماهانه)")
             filtered_df['Month'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[1] if len(x.split('/')) > 1 else '00')
             filtered_df['Year'] = filtered_df['ShamsiDate'].apply(lambda x: x.split('/')[0] if len(x.split('/')) > 1 else '00')
@@ -271,7 +261,6 @@ elif st.session_state.current_page == "ManagerDashboard":
 
 # --- EMPLOYEE DASHBOARD & NAVIGATED VIEWS ---
 elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "CustomersSold", "VisitorsLeads", "MyPortfolio", "ProfileSettings"]:
-    # Sidebar navigation for employees
     with st.sidebar:
         st.markdown(f"### Menu Navigation")
         if st.button("📋 Submit New Presentation", use_container_width=True): navigate_to("EmployeeDashboard")
@@ -347,15 +336,56 @@ elif st.session_state.current_page in ["EmployeeDashboard", "MyPresentList", "Cu
 
     elif st.session_state.current_page == "ProfileSettings":
         st.title("Account Profile Settings")
+        
+        # Load existing profile meta data safely
+        current_profile_data = st.session_state.users_db[st.session_state.current_user]
+        current_pwd = current_profile_data[0]
+        meta = current_profile_data[2] if len(current_profile_data) > 2 and isinstance(current_profile_data[2], dict) else {}
+        
+        old_fn = meta.get("first_name", "")
+        old_ln = meta.get("last_name", "")
+        old_em = meta.get("email", "")
+        old_ph = meta.get("phone", "")
+        old_team = meta.get("team", TEAMS_LIST[0])
+
         new_username = st.text_input("Modify Username", value=st.session_state.current_user)
-        new_password = st.text_input("Modify Password", type="password")
-        if st.button("Save Profile Adjustments"):
-            if new_username and new_password:
-                user_info = st.session_state.users_db.pop(st.session_state.current_user)
-                st.session_state.users_db[new_username] = [new_password, "Employee", user_info[2]]
+        new_password = st.text_input("Modify Password", type="password", value=current_pwd)
+        
+        st.write("---")
+        st.markdown("#### Personal & Team Details")
+        new_fn = st.text_input("First Name", value=old_fn)
+        new_ln = st.text_input("Last Name", value=old_ln)
+        new_em = st.text_input("Email Address", value=old_em)
+        new_ph = st.text_input("Phone Number", value=old_ph)
+        
+        # Team Dropdown update
+        default_team_idx = TEAMS_LIST.index(old_team) if old_team in TEAMS_LIST else 0
+        new_team = st.selectbox("Team Selection", TEAMS_LIST, index=default_team_idx)
+
+        if st.button("Save Profile Adjustments", type="primary"):
+            if new_username and new_password and new_fn and new_ln:
+                # Remove old key if username changed
+                if new_username != st.session_state.current_user:
+                    st.session_state.users_db.pop(st.session_state.current_user)
+                
+                # Update database structured schema
+                st.session_state.users_db[new_username] = [
+                    new_password, 
+                    "Employee", 
+                    {
+                        "first_name": new_fn, 
+                        "last_name": new_ln, 
+                        "email": new_em, 
+                        "phone": new_ph, 
+                        "team": new_team
+                    }
+                ]
                 save_users(st.session_state.users_db)
                 st.session_state.current_user = new_username
-                st.success("Credentials altered successfully!")
+                st.success("All credentials and profile information altered successfully!")
+                st.rerun()
+            else:
+                st.error("Username, Password, First Name, and Last Name are required.")
 
 # --- CONSUMER DATA SPECIFICATION FORM ---
 elif st.session_state.current_page == "ConsumerData":
