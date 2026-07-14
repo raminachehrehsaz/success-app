@@ -5,11 +5,65 @@ import os
 
 st.set_page_config(page_title="Enterprise Manager & Employee Portal", layout="centered")
 
-# فایل‌های ذخیره‌سازی داده‌ها روی سرور
+# --- Custom Theme styling inspired by the golden/neon oil theme ---
+st.markdown("""
+    <style>
+        .stApp {
+            background-color: #090e17;
+            color: #e2e8f0;
+        }
+        
+        h1, h2, h3, h4, h5, h6, label, p {
+            font-family: 'Tahoma', sans-serif;
+        }
+        
+        h1, h2, h3, h4, h5, h6, label {
+            color: #ffd700 !important;
+            text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+        }
+        
+        div[data-baseweb="input"] {
+            background-color: #111a2e !important;
+            border: 1px solid #ffd700 !important;
+            border-radius: 8px !important;
+        }
+        input {
+            color: #ffffff !important;
+        }
+        
+        .stButton>button {
+            background: linear-gradient(135deg, #ffb300 0%, #ff8f00 100%) !important;
+            color: #090e17 !important;
+            font-weight: bold !important;
+            border: none !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 15px rgba(255, 179, 0, 0.3) !important;
+            transition: all 0.3s ease !important;
+        }
+        .stButton>button:hover {
+            background: linear-gradient(135deg, #00e5ff 0%, #00a3ff 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 6px 20px rgba(0, 229, 255, 0.6) !important;
+            transform: translateY(-2px);
+        }
+        
+        hr {
+            border-color: rgba(255, 215, 0, 0.2) !important;
+        }
+        
+        /* Helper to vertically center text next to buttons */
+        .signup-text {
+            color: #ffd700;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 6px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 USERS_FILE = "users_db.json"
 SALES_FILE = "sales_data.json"
 
-# تابع کمکی برای بارگذاری کاربران از فایل
 def load_users():
     if os.path.exists(USERS_FILE):
         try:
@@ -22,12 +76,10 @@ def load_users():
         "RaminaChehrehsaz": ["123456", "Manager"]
     }
 
-# تابع کمکی برای ذخیره کاربران در فایل
 def save_users(users):
     with open(USERS_FILE, "w", encoding="utf-8") as f:
         json.dump(users, f, ensure_ascii=False, indent=4)
 
-# تابع کمکی برای بارگذاری داده‌های فروش از فایل
 def load_sales():
     if os.path.exists(SALES_FILE):
         try:
@@ -37,12 +89,10 @@ def load_sales():
             pass
     return []
 
-# تابع کمکی برای ذخیره داده‌های فروش در فایل
 def save_sales(sales):
     with open(SALES_FILE, "w", encoding="utf-8") as f:
         json.dump(sales, f, ensure_ascii=False, indent=4)
 
-# مقداردهی اولیه Session State با استفاده از اطلاعات هارد دیسک
 if "users_db" not in st.session_state:
     st.session_state.users_db = load_users()
 if "sales_data" not in st.session_state:
@@ -58,51 +108,35 @@ def navigate_to(page_name):
     st.session_state.current_page = page_name
     st.rerun()
 
-# ----------------- Role Selection -----------------
+# ----------------- Single Authentication Portal -----------------
 if st.session_state.current_page == "RoleSelection":
-    st.title("Choose your role:")
+    st.title("Enterprise Portal")
+    
+    col_u, col_p = st.columns(2)
+    with col_u:
+        user = st.text_input("Username")
+    with col_p:
+        passw = st.text_input("Password", type="password")
+        
+    st.write("---")
+    
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Manager Login", use_container_width=True):
-            navigate_to("ManagerLogin")
+            if not user or not passw:
+                st.error("Please enter both Username and Password.")
+            else:
+                user_data = st.session_state.users_db.get(user)
+                if user_data and tuple(user_data) == (passw, "Manager"):
+                    st.success("Login Successful!")
+                    navigate_to("ManagerDashboard")
+                else:
+                    st.error("Invalid Manager credentials.")
+                    
     with col2:
         if st.button("Employee Login", use_container_width=True):
-            navigate_to("EmployeeLogin")
-
-# ----------------- Manager Login -----------------
-elif st.session_state.current_page == "ManagerLogin":
-    st.title("Manager Login")
-    user = st.text_input("Username")
-    passw = st.text_input("Password", type="password")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Return", use_container_width=True):
-            navigate_to("RoleSelection")
-    with col2:
-        if st.button("Enter", use_container_width=True):
-            # تبدیل لیست به تاپل جهت همخوانی با کدهای قبلی
-            user_data = st.session_state.users_db.get(user)
-            if user_data and tuple(user_data) == (passw, "Manager"):
-                st.success("Login Successful!")
-                navigate_to("ManagerDashboard")
-            else:
-                st.error("Invalid Manager credentials.")
-
-# ----------------- Employee Login -----------------
-elif st.session_state.current_page == "EmployeeLogin":
-    st.title("Employee Login / Signup")
-    user = st.text_input("Username")
-    passw = st.text_input("Password", type="password")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Return", use_container_width=True):
-            navigate_to("RoleSelection")
-    with col2:
-        if st.button("Enter", use_container_width=True):
             if not user or not passw:
-                st.error("Username and Password cannot be empty.")
+                st.error("Please enter both Username and Password.")
             elif user in st.session_state.users_db:
                 saved_p, role = st.session_state.users_db[user]
                 if saved_p == passw and role == "Employee":
@@ -110,13 +144,27 @@ elif st.session_state.current_page == "EmployeeLogin":
                     st.success("Login Successful!")
                     navigate_to("EmployeeDashboard")
                 else:
-                    st.error("Wrong password or invalid account.")
+                    st.error("Wrong password or invalid account type.")
             else:
-                # ثبت کاربر جدید و ذخیره دائم آن در فایل JSON
+                st.error("Account not found. Use Sign up below if you are new.")
+
+    st.write("---")
+    
+    # Registration option row
+    col_text, col_btn = st.columns([1, 3])
+    with col_text:
+        st.markdown("<p class='signup-text'>New employee?</p>", unsafe_allow_html=True)
+    with col_btn:
+        if st.button("Sign up", use_container_width=False):
+            if not user or not passw:
+                st.error("Please provide a Username and Password to create a new account.")
+            elif user in st.session_state.users_db:
+                st.error("Username already exists. Please choose a different one.")
+            else:
                 st.session_state.users_db[user] = [passw, "Employee"]
                 save_users(st.session_state.users_db)
                 st.session_state.current_employee = user
-                st.success("Account created and registered successfully!")
+                st.success("Account created successfully!")
                 navigate_to("EmployeeDashboard")
 
 # ----------------- Manager Dashboard -----------------
@@ -150,8 +198,8 @@ elif st.session_state.current_page == "ManagerDashboard":
                 total_sold = len(group[group["Status"] == "Sold"])
                 summary_data.append({
                     "Date": date_val,
-                    "Total Presented (پرزنت شده)": total_presented,
-                    "Total Sold (خریده شده)": total_sold
+                    "Total Presented": total_presented,
+                    "Total Sold": total_sold
                 })
             summary_df = pd.DataFrame(summary_data)
             st.dataframe(summary_df, use_container_width=True, hide_index=True)
@@ -230,7 +278,7 @@ elif st.session_state.current_page == "EmployeeDashboard":
     if is_sale_successful:
         col_inv, col_unit = st.columns([5, 1])
         invest_val = col_inv.number_input("Investment Amount", min_value=0.0, step=1000.0, format="%.2f")
-        col_unit.markdown("<h4 style='margin-top: 28px;'>ریال</h4>", unsafe_allow_html=True)
+        col_unit.markdown("<h4 style='margin-top: 28px;'>Rial</h4>", unsafe_allow_html=True)
         
     if st.button("Consumer Data", type="primary", use_container_width=True):
         status = "Sold" if is_sale_successful else "Lead"
@@ -296,7 +344,6 @@ elif st.session_state.current_page == "ConsumerData":
                 "CustomerNotes": cust_notes
             }
             
-            # ذخیره تراکنش جدید و ثبت دائمی آن در هارد سرور
             st.session_state.sales_data.append(new_row)
             save_sales(st.session_state.sales_data)
             
